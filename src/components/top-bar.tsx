@@ -2,13 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { logout } from "@/lib/auth-actions";
 
 export function TopBar() {
   const pathname = usePathname();
   const router = useRouter();
   const enVentas = pathname?.startsWith("/ventas") ?? false;
+
+  if (pathname?.startsWith("/login")) return null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
@@ -30,6 +35,10 @@ export function TopBar() {
             💰 Ventas
           </span>
         </div>
+
+        <Button type="button" variant="ghost" size="icon" onClick={() => logout()} aria-label="Cerrar sesión">
+          <LogOut className="size-4" />
+        </Button>
       </div>
     </header>
   );
