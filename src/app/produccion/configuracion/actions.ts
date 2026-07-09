@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 const costosFijosSchema = z.object({
   costo_mano_obra: z.coerce.number().min(0),
@@ -17,11 +17,8 @@ const tipoHiloSchema = z.object({
 
 export async function actualizarCostosFijos(values: z.infer<typeof costosFijosSchema>) {
   const data = costosFijosSchema.parse(values);
-  await prisma.configuracion.upsert({
-    where: { id: 1 },
-    update: data,
-    create: { id: 1, ...data },
-  });
+  const { error } = await supabase.from("configuracion").upsert({ id: 1, ...data });
+  if (error) throw new Error(error.message);
   revalidatePath("/produccion/configuracion");
   revalidatePath("/produccion/calculadora");
   return { ok: true as const };
@@ -29,7 +26,8 @@ export async function actualizarCostosFijos(values: z.infer<typeof costosFijosSc
 
 export async function crearTipoHilo(values: z.infer<typeof tipoHiloSchema>) {
   const data = tipoHiloSchema.parse(values);
-  await prisma.tipoHilo.create({ data });
+  const { error } = await supabase.from("tipos_hilo").insert(data);
+  if (error) throw new Error(error.message);
   revalidatePath("/produccion/configuracion");
   revalidatePath("/produccion/calculadora");
   return { ok: true as const };
@@ -37,7 +35,8 @@ export async function crearTipoHilo(values: z.infer<typeof tipoHiloSchema>) {
 
 export async function actualizarTipoHilo(id: number, values: z.infer<typeof tipoHiloSchema>) {
   const data = tipoHiloSchema.parse(values);
-  await prisma.tipoHilo.update({ where: { id_tipo_hilo: id }, data });
+  const { error } = await supabase.from("tipos_hilo").update(data).eq("id_tipo_hilo", id);
+  if (error) throw new Error(error.message);
   revalidatePath("/produccion/configuracion");
   revalidatePath("/produccion/calculadora");
   return { ok: true as const };

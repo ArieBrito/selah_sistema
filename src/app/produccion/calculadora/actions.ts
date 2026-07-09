@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { buscarClasificacion, calcularCostoCargado, calcularCostoMateriales, calcularPrecioFinal } from "@/lib/pricing";
 import { obtenerContextoPrecios } from "./data";
 
@@ -21,19 +21,24 @@ export type DisenoInput = z.infer<typeof disenoSchema>;
 export async function guardarDiseno(input: DisenoInput) {
   const data = disenoSchema.parse(input);
 
-  const [contexto, materialesUsados, categoriaPulsera, productoExistente] = await Promise.all([
+  const [contexto, { data: materialesUsados }, { data: categoriaPulsera }, { data: productoExistente }] = await Promise.all([
     obtenerContextoPrecios(),
-    prisma.material.findMany({ where: { id_material: { in: data.lineas.map((l) => l.id_material) } } }),
-    prisma.categoria.findFirst({ where: { nombre: "Pulsera" } }),
-    data.id ? prisma.producto.findUnique({ where: { id_producto: data.id } }) : null,
+    supabase
+      .from("materiales")
+      .select("id_material, costo_unitario")
+      .in("id_material", data.lineas.map((l) => l.id_material)),
+    supabase.from("categorias").select("id_categoria").eq("nombre", "Pulsera").maybeSingle(),
+    data.id
+      ? supabase.from("productos").select("precio").eq("id_producto", data.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const tipoHilo = contexto.tiposHilo.find((t) => t.id === data.id_tipo_hilo);
   if (!tipoHilo) return { ok: false as const, error: "Selecciona un tipo de hilo válido." };
 
   const lineasConCosto = data.lineas.map((l) => {
-    const material = materialesUsados.find((m) => m.id_material === l.id_material)!;
-    return { ...l, costoUnitario: material.costo_unitario?.toNumber() ?? 0 };
+    const material = materialesUsados!.find((m) => m.id_material === l.id_material)!;
+    return { ...l, costoUnitario: Number(material.costo_unitario ?? 0) };
   });
 
   const costoMateriales = calcularCostoMateriales(
@@ -55,37 +60,21 @@ export async function guardarDiseno(input: DisenoInput) {
     precioEscalera = data.precioManual;
   }
 
-  const precioFinal = calcularPrecioFinal(precioEscalera, productoExistente?.precio.toNumber());
+  const precioFinal = calcularPrecioFinal(precioEscalera, productoExistente ? Number(productoExistente.precio) : undefined);
   const costoFijoTotal = contexto.fijos.costo_mano_obra + contexto.fijos.costo_empaque + contexto.fijos.costo_pago_hermana;
 
-  const producto = await prisma.$transaction(async (tx) => {
-    const guardado = await tx.producto.upsert({
-      where: { id_producto: data.id ?? 0 },
-      update: {
-        nombre: data.nombre,
-        id_tipo_hilo: data.id_tipo_hilo,
-        id_clasif,
-        precio: precioFinal,
-        costo_mano_obra: costoFijoTotal,
-      },
-      create: {
-        nombre: data.nombre,
-        id_tipo_hilo: data.id_tipo_hilo,
-        id_categoria: categoriaPulsera?.id_categoria,
-        id_clasif,
-        precio: precioFinal,
-        costo_mano_obra: costoFijoTotal,
-      },
-    });
-
-    await tx.productoMaterial.deleteMany({ where: { id_producto: guardado.id_producto } });
-    await tx.productoMaterial.createMany({
-      data: data.lineas.map((l) => ({ id_producto: guardado.id_producto, id_material: l.id_material, cantidad: l.cantidad })),
-    });
-
-    return guardado;
+  const { data: id_producto, error } = await supabase.rpc("guardar_diseno", {
+    p_id_producto: data.id ?? null,
+    p_nombre: data.nombre,
+    p_id_categoria: categoriaPulsera?.id_categoria ?? null,
+    p_id_clasif: id_clasif,
+    p_id_tipo_hilo: data.id_tipo_hilo,
+    p_precio: precioFinal,
+    p_costo_mano_obra: costoFijoTotal,
+    p_lineas: data.lineas.map((l) => ({ id_material: l.id_material, cantidad: l.cantidad })),
   });
+  if (error) throw new Error(error.message);
 
   revalidatePath("/produccion/calculadora");
-  return { ok: true as const, id: producto.id_producto };
+  return { ok: true as const, id: id_producto as number };
 }

@@ -1,18 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
-
-function isForeignKeyViolation(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as { code?: string }).code === "P2003";
-}
+import { supabase } from "@/lib/supabase";
 
 export async function eliminarProducto(id_producto: number) {
-  try {
-    await prisma.producto.delete({ where: { id_producto } });
-  } catch (error) {
-    if (isForeignKeyViolation(error)) {
-      const producciones = await prisma.produccion.count({ where: { id_producto } });
+  const { error } = await supabase.from("productos").delete().eq("id_producto", id_producto);
+
+  if (error) {
+    if (error.code === "23503") {
+      const { count } = await supabase
+        .from("produccion")
+        .select("*", { count: "exact", head: true })
+        .eq("id_producto", id_producto);
+      const producciones = count ?? 0;
       return {
         ok: false as const,
         error:
@@ -21,7 +21,7 @@ export async function eliminarProducto(id_producto: number) {
             : "No se puede eliminar este producto porque está en uso.",
       };
     }
-    throw error;
+    throw new Error(error.message);
   }
 
   revalidatePath("/produccion/productos");
@@ -30,7 +30,8 @@ export async function eliminarProducto(id_producto: number) {
 }
 
 export async function cambiarActivoProducto(id_producto: number, activo: boolean) {
-  await prisma.producto.update({ where: { id_producto }, data: { activo } });
+  const { error } = await supabase.from("productos").update({ activo }).eq("id_producto", id_producto);
+  if (error) throw new Error(error.message);
   revalidatePath("/produccion/productos");
   revalidatePath("/produccion/calculadora");
   return { ok: true as const };

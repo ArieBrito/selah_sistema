@@ -1,29 +1,44 @@
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { calcularCostoCargado, calcularCostoMateriales, calcularMargenReal } from "@/lib/pricing";
 import { ProductosTable } from "./productos-table";
 
+type ProductoRow = {
+  id_producto: number;
+  nombre: string;
+  id_clasif: string | null;
+  precio: string;
+  stock_piezas: string;
+  activo: boolean;
+  categoria: { nombre: string } | null;
+  tipo_hilo: { nombre: string; costo: string } | null;
+  materiales: { cantidad: string; material: { costo_unitario: string | null } }[];
+};
+
 export default async function ProductosPage() {
-  const [productos, configuracion] = await Promise.all([
-    prisma.producto.findMany({
-      include: { categoria: true, clasificacion: true, tipo_hilo: true, materiales: { include: { material: true } } },
-      orderBy: { nombre: "asc" },
-    }),
-    prisma.configuracion.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } }),
+  const [{ data: productos }, { data: configuracion }] = await Promise.all([
+    supabase
+      .from("productos")
+      .select(
+        "id_producto, nombre, id_clasif, precio, stock_piezas, activo, categoria:categorias(nombre), tipo_hilo:tipos_hilo(nombre, costo), materiales:producto_materiales(cantidad, material:materiales(costo_unitario))"
+      )
+      .order("nombre")
+      .returns<ProductoRow[]>(),
+    supabase.from("configuracion").upsert({ id: 1 }).select().single(),
   ]);
 
   const fijos = {
-    costo_mano_obra: configuracion.costo_mano_obra.toNumber(),
-    costo_empaque: configuracion.costo_empaque.toNumber(),
-    costo_pago_hermana: configuracion.costo_pago_hermana.toNumber(),
+    costo_mano_obra: Number(configuracion!.costo_mano_obra),
+    costo_empaque: Number(configuracion!.costo_empaque),
+    costo_pago_hermana: Number(configuracion!.costo_pago_hermana),
   };
 
-  const productosPlain = productos.map((p) => {
+  const productosPlain = (productos ?? []).map((p) => {
     const costoMateriales = calcularCostoMateriales(
-      p.materiales.map((pm) => ({ cantidad: pm.cantidad.toNumber(), costoUnitario: pm.material.costo_unitario?.toNumber() ?? 0 }))
+      p.materiales.map((pm) => ({ cantidad: Number(pm.cantidad), costoUnitario: Number(pm.material.costo_unitario ?? 0) }))
     );
-    const costoHilo = p.tipo_hilo?.costo.toNumber() ?? 0;
+    const costoHilo = Number(p.tipo_hilo?.costo ?? 0);
     const costoCargado = calcularCostoCargado(costoMateriales, costoHilo, fijos);
-    const precio = p.precio.toNumber();
+    const precio = Number(p.precio);
 
     return {
       id_producto: p.id_producto,
@@ -32,7 +47,7 @@ export default async function ProductosPage() {
       id_clasif: p.id_clasif,
       tipoHiloNombre: p.tipo_hilo?.nombre ?? null,
       precio,
-      stock_piezas: p.stock_piezas.toNumber(),
+      stock_piezas: Number(p.stock_piezas),
       activo: p.activo,
       margenReal: calcularMargenReal(precio, costoCargado),
     };
