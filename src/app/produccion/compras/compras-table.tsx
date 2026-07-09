@@ -125,7 +125,7 @@ export function ComprasTable({
                 </TableCell>
                 <TableCell className="font-semibold text-foreground">${c.total.toFixed(2)}</TableCell>
                 <TableCell>
-                  <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="flex justify-end gap-1 max-sm:opacity-100 opacity-0 transition-opacity group-hover:opacity-100">
                     <Button
                       size="icon"
                       variant="ghost"

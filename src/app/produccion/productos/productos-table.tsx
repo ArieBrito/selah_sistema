@@ -126,7 +126,7 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
                   <Switch checked={p.activo} onCheckedChange={() => alternarActivo(p)} aria-label="Activo" />
                 </TableCell>
                 <TableCell>
-                  <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="flex justify-end gap-1 max-sm:opacity-100 opacity-0 transition-opacity group-hover:opacity-100">
                     <Link href={`/produccion/calculadora/${p.id_producto}`} className={buttonVariants({ size: "icon", variant: "ghost" })}>
                       <Pencil className="size-4" />
                     </Link>

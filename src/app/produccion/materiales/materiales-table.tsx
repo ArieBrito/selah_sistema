@@ -197,7 +197,7 @@ export function MaterialesTable({
                 </TableCell>
                 <TableCell className="text-muted-foreground">{m.stock_piezas}</TableCell>
                 <TableCell>
-                  <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="flex justify-end gap-1 max-sm:opacity-100 opacity-0 transition-opacity group-hover:opacity-100">
                     <Button
                       size="icon"
                       variant="ghost"

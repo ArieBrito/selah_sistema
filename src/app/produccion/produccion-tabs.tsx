@@ -16,7 +16,7 @@ export function ProduccionTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1 border-b border-border">
+    <nav className="no-scrollbar flex gap-1 overflow-x-auto border-b border-border">
       {TABS.map((tab) => {
         const active = pathname?.startsWith(tab.href);
         return (
@@ -24,7 +24,7 @@ export function ProduccionTabs() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors",
+              "shrink-0 rounded-t-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
               active
                 ? "border-b-2 border-primary text-primary"
                 : "border-b-2 border-transparent text-muted-foreground hover:text-foreground"

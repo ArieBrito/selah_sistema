@@ -104,7 +104,7 @@ export function MaterialForm({
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="id_material">Código *</Label>
               <Input
@@ -149,7 +149,7 @@ export function MaterialForm({
           </div>
 
           {categoria === "ingrediente" && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="largo_mm">Largo tira (mm)</Label>
                 <Input id="largo_mm" type="number" step="any" min="0" {...form.register("largo_mm")} />
@@ -205,7 +205,7 @@ export function MaterialForm({
 
           {categoria === "ingrediente" && (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="costo_tira">Costo por tira ($)</Label>
                   <Input id="costo_tira" type="number" step="any" min="0" {...form.register("costo_tira")} />
