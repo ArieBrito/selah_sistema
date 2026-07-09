@@ -21,12 +21,14 @@ export function MaterialForm({
   material,
   proveedores,
   onProveedorCreado,
+  onCreado,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   material: MaterialRow | null;
   proveedores: ProveedorOption[];
   onProveedorCreado: (p: ProveedorOption) => void;
+  onCreado?: (material: { id_material: string; nombre: string }) => void;
 }) {
   const esEdicion = material !== null;
   const [creandoProveedor, setCreandoProveedor] = useState(false);
@@ -61,6 +63,7 @@ export function MaterialForm({
       return;
     }
     toast.success(esEdicion ? "Material actualizado" : "Material creado");
+    if (!esEdicion) onCreado?.({ id_material: values.id_material, nombre: values.nombre || values.id_material });
     onOpenChange(false);
   }
 

@@ -1,13 +1,15 @@
 import { z } from "zod";
 
+const emptyToUndefined = (val: unknown) => (val === "" ? undefined : val);
+
 export const materialFormSchema = z.object({
   id_material: z.string().trim().min(1, "El código es obligatorio"),
   nombre: z.string().trim().optional(),
   descripcion: z.string().trim().optional(),
-  largo_mm: z.coerce.number().min(0).optional(),
-  ancho_mm: z.coerce.number().min(0).optional(),
+  largo_mm: z.preprocess(emptyToUndefined, z.coerce.number().min(0).optional()),
+  ancho_mm: z.preprocess(emptyToUndefined, z.coerce.number().min(0).optional()),
   costo_tira: z.coerce.number().min(0, "No puede ser negativo"),
-  piezas_por_tira: z.coerce.number().positive("Debe ser mayor a 0").optional(),
+  piezas_por_tira: z.preprocess(emptyToUndefined, z.coerce.number().positive("Debe ser mayor a 0").optional()),
   stock_piezas: z.coerce.number().min(0, "No puede ser negativo"),
   id_proveedor: z.number().int().positive().nullable().optional(),
 });

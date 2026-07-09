@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { crearCompra, actualizarCompra, crearEmpleado } from "./actions";
 import { crearProveedor } from "../materiales/actions";
+import { MaterialForm } from "../materiales/material-form";
 import type { CompraRow, ProveedorOption, MetodoOption, EmpleadoOption, MaterialOption } from "./types";
 
 type Linea = { id_material: string; nombre: string; cantidad: number; costo_unit: number };
@@ -63,10 +64,12 @@ export function CompraForm({
 
   const [proveedoresLocal, setProveedoresLocal] = useState(proveedores);
   const [empleadosLocal, setEmpleadosLocal] = useState(empleados);
+  const [materialesLocal, setMaterialesLocal] = useState(materiales);
   const [creandoProveedor, setCreandoProveedor] = useState(false);
   const [nombreProveedorNuevo, setNombreProveedorNuevo] = useState("");
   const [creandoEmpleado, setCreandoEmpleado] = useState(false);
   const [nombreEmpleadoNuevo, setNombreEmpleadoNuevo] = useState("");
+  const [materialFormAbierto, setMaterialFormAbierto] = useState(false);
 
   // Reinicia el formulario cada vez que el diálogo se abre (o cambia la compra a editar),
   // siguiendo el patrón de React para ajustar estado durante el render en vez de un efecto.
@@ -150,9 +153,15 @@ export function CompraForm({
     router.refresh();
   }
 
-  const disponibles = materiales.filter((m) => !lineas.some((l) => l.id_material === m.id_material));
+  const disponibles = materialesLocal.filter((m) => !lineas.some((l) => l.id_material === m.id_material));
+
+  function handleMaterialCreado(material: MaterialOption) {
+    setMaterialesLocal((prev) => [...prev, material]);
+    agregarLinea(material);
+  }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
@@ -299,13 +308,24 @@ export function CompraForm({
                   <Command>
                     <CommandInput placeholder="Buscar material..." />
                     <CommandList>
-                      <CommandEmpty>Sin resultados.</CommandEmpty>
                       <CommandGroup>
                         {disponibles.map((m) => (
                           <CommandItem key={m.id_material} value={m.nombre} onSelect={() => agregarLinea(m)}>
                             {m.nombre}
                           </CommandItem>
                         ))}
+                      </CommandGroup>
+                      <CommandGroup>
+                        <CommandItem
+                          forceMount
+                          value="crear-material-nuevo"
+                          onSelect={() => {
+                            setPickerAbierto(false);
+                            setMaterialFormAbierto(true);
+                          }}
+                        >
+                          <Plus className="size-3.5" /> Crear material nuevo
+                        </CommandItem>
                       </CommandGroup>
                     </CommandList>
                   </Command>
@@ -383,5 +403,15 @@ export function CompraForm({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <MaterialForm
+      open={materialFormAbierto}
+      onOpenChange={setMaterialFormAbierto}
+      material={null}
+      proveedores={proveedoresLocal}
+      onProveedorCreado={(p) => setProveedoresLocal((prev) => [...prev, p])}
+      onCreado={handleMaterialCreado}
+    />
+    </>
   );
 }
