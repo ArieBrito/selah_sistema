@@ -1,6 +1,9 @@
+import type { MaterialCategoria } from "@/lib/validations";
+
 export type MaterialRow = {
   id_material: string;
   nombre: string | null;
+  categoria: MaterialCategoria;
   descripcion: string | null;
   largo_mm: number | null;
   ancho_mm: number | null;

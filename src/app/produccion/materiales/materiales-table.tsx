@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { eliminarMaterial } from "./actions";
-import { MaterialForm } from "./material-form";
+import { MaterialForm, categoriaLabels } from "./material-form";
 import type { MaterialRow, ProveedorOption } from "./types";
 
 type Orden = { columna: "id_material" | "costo_unitario" | "stock_piezas"; direccion: "asc" | "desc" };
@@ -145,6 +145,7 @@ export function MaterialesTable({
                 </button>
               </TableHead>
               <TableHead>Nombre</TableHead>
+              <TableHead>Categoría</TableHead>
               <TableHead>Proveedor</TableHead>
               <TableHead>Tira</TableHead>
               <TableHead>
@@ -163,7 +164,7 @@ export function MaterialesTable({
           <TableBody>
             {listaFiltrada.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                   No hay materiales que coincidan con la búsqueda.
                 </TableCell>
               </TableRow>
@@ -172,13 +173,22 @@ export function MaterialesTable({
               <TableRow key={m.id_material} className="group cursor-pointer" onClick={() => abrirEdicion(m)}>
                 <TableCell className="font-medium text-foreground">{m.id_material}</TableCell>
                 <TableCell className="text-muted-foreground">{m.nombre || "—"}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  <Badge variant="secondary" className="font-normal">
+                    {categoriaLabels[m.categoria]}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-muted-foreground">{m.proveedorNombre ?? "—"}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  ${m.costo_tira.toFixed(2)} {m.piezas_por_tira ? `· ${m.piezas_por_tira} pzs` : ""}
+                  {m.categoria === "ingrediente"
+                    ? `$${m.costo_tira.toFixed(2)} ${m.piezas_por_tira ? `· ${m.piezas_por_tira} pzs` : ""}`
+                    : "—"}
                 </TableCell>
                 <TableCell className="font-semibold text-foreground">
-                  {m.costo_unitario !== null ? (
-                    `$${m.costo_unitario.toFixed(4)}`
+                  {m.categoria !== "ingrediente" ? (
+                    "—"
+                  ) : m.costo_unitario !== null ? (
+                    `$${m.costo_unitario.toFixed(2)}`
                   ) : (
                     <Badge variant="secondary" className="gap-1 font-normal">
                       <TriangleAlert className="size-3" /> falta piezas/tira

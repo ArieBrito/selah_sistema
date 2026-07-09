@@ -44,8 +44,12 @@ export async function actualizarCompra(id_compra: number, values: CompraFormValu
 }
 
 export async function eliminarCompra(id_compra: number) {
+  const { error: detalleError } = await supabase.from("compra_detalle").delete().eq("id_compra", id_compra);
+  if (detalleError) throw new Error(detalleError.message);
+
   const { error } = await supabase.from("compras").delete().eq("id_compra", id_compra);
   if (error) throw new Error(error.message);
+
   revalidatePath("/produccion/compras");
   return { ok: true as const };
 }

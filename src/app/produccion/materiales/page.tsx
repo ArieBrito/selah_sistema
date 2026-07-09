@@ -1,9 +1,11 @@
 import { supabase } from "@/lib/supabase";
+import type { MaterialCategoria } from "@/lib/validations";
 import { MaterialesTable } from "./materiales-table";
 
 type MaterialRow = {
   id_material: string;
   nombre: string | null;
+  categoria: MaterialCategoria;
   descripcion: string | null;
   largo_mm: string | null;
   ancho_mm: string | null;
@@ -28,6 +30,7 @@ export default async function MaterialesPage() {
   const materialesPlain = (materiales ?? []).map((m) => ({
     id_material: m.id_material,
     nombre: m.nombre,
+    categoria: m.categoria,
     descripcion: m.descripcion,
     largo_mm: m.largo_mm === null ? null : Number(m.largo_mm),
     ancho_mm: m.ancho_mm === null ? null : Number(m.ancho_mm),

@@ -11,9 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { materialFormSchema, type MaterialFormValues } from "@/lib/validations";
+import { materialFormSchema, materialCategorias, type MaterialFormValues } from "@/lib/validations";
 import { crearMaterial, actualizarMaterial, crearProveedor } from "./actions";
 import type { MaterialRow, ProveedorOption } from "./types";
+
+export const categoriaLabels: Record<(typeof materialCategorias)[number], string> = {
+  ingrediente: "Ingrediente para pulseras",
+  insumo: "Insumo / Empaque",
+  capital: "Bien de capital",
+};
 
 export function MaterialForm({
   open,
@@ -28,11 +34,12 @@ export function MaterialForm({
   material: MaterialRow | null;
   proveedores: ProveedorOption[];
   onProveedorCreado: (p: ProveedorOption) => void;
-  onCreado?: (material: { id_material: string; nombre: string }) => void;
+  onCreado?: (material: { id_material: string; nombre: string; costo_tira: number }) => void;
 }) {
   const esEdicion = material !== null;
   const [creandoProveedor, setCreandoProveedor] = useState(false);
   const [nombreProveedorNuevo, setNombreProveedorNuevo] = useState("");
+  const [stockTocado, setStockTocado] = useState(false);
 
   const form = useForm<z.input<typeof materialFormSchema>, unknown, MaterialFormValues>({
     resolver: zodResolver(materialFormSchema),
@@ -44,14 +51,23 @@ export function MaterialForm({
       form.reset(valoresIniciales(material));
       setCreandoProveedor(false);
       setNombreProveedorNuevo("");
+      setStockTocado(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, material]);
 
+  const categoria = form.watch("categoria");
   const costoTira = form.watch("costo_tira");
   const piezasPorTira = form.watch("piezas_por_tira");
   const costoUnitario =
     Number(piezasPorTira) > 0 ? Number(costoTira) / Number(piezasPorTira) : null;
+
+  useEffect(() => {
+    if (!esEdicion && !stockTocado && piezasPorTira) {
+      form.setValue("stock_piezas", Number(piezasPorTira));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [piezasPorTira, esEdicion, stockTocado]);
 
   async function onSubmit(values: MaterialFormValues) {
     const resultado = esEdicion
@@ -63,7 +79,8 @@ export function MaterialForm({
       return;
     }
     toast.success(esEdicion ? "Material actualizado" : "Material creado");
-    if (!esEdicion) onCreado?.({ id_material: values.id_material, nombre: values.nombre || values.id_material });
+    if (!esEdicion)
+      onCreado?.({ id_material: values.id_material, nombre: values.nombre || values.id_material, costo_tira: values.costo_tira });
     onOpenChange(false);
   }
 
@@ -107,20 +124,42 @@ export function MaterialForm({
           </div>
 
           <div className="space-y-1.5">
+            <Label>Categoría</Label>
+            <Select
+              value={form.watch("categoria")}
+              onValueChange={(v) => form.setValue("categoria", v as (typeof materialCategorias)[number])}
+              items={Object.fromEntries(materialCategorias.map((c) => [c, categoriaLabels[c]]))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {materialCategorias.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {categoriaLabels[c]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="descripcion">Descripción</Label>
             <Textarea id="descripcion" rows={2} {...form.register("descripcion")} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="largo_mm">Largo tira (mm)</Label>
-              <Input id="largo_mm" type="number" step="any" min="0" {...form.register("largo_mm")} />
+          {categoria === "ingrediente" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="largo_mm">Largo tira (mm)</Label>
+                <Input id="largo_mm" type="number" step="any" min="0" {...form.register("largo_mm")} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ancho_mm">Ancho tira (mm)</Label>
+                <Input id="ancho_mm" type="number" step="any" min="0" {...form.register("ancho_mm")} />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="ancho_mm">Ancho tira (mm)</Label>
-              <Input id="ancho_mm" type="number" step="any" min="0" {...form.register("ancho_mm")} />
-            </div>
-          </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>Proveedor</Label>
@@ -164,37 +203,47 @@ export function MaterialForm({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="costo_tira">Costo por tira ($) *</Label>
-              <Input id="costo_tira" type="number" step="any" min="0" {...form.register("costo_tira")} />
-              {form.formState.errors.costo_tira && (
-                <p className="text-sm text-destructive">{form.formState.errors.costo_tira.message}</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="piezas_por_tira">Piezas por tira</Label>
-              <Input
-                id="piezas_por_tira"
-                type="number"
-                step="any"
-                min="0"
-                {...form.register("piezas_por_tira")}
-              />
-            </div>
-          </div>
+          {categoria === "ingrediente" && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="costo_tira">Costo por tira ($)</Label>
+                  <Input id="costo_tira" type="number" step="any" min="0" {...form.register("costo_tira")} />
+                  {form.formState.errors.costo_tira && (
+                    <p className="text-sm text-destructive">{form.formState.errors.costo_tira.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="piezas_por_tira">Piezas por tira</Label>
+                  <Input
+                    id="piezas_por_tira"
+                    type="number"
+                    step="any"
+                    min="0"
+                    {...form.register("piezas_por_tira")}
+                  />
+                </div>
+              </div>
 
-          <div className="rounded-lg bg-muted px-3 py-2 text-sm">
-            Costo unitario ={" "}
-            <span className="font-semibold text-foreground">
-              {costoUnitario !== null ? `$${costoUnitario.toFixed(4)}` : "— (falta piezas por tira)"}
-            </span>{" "}
-            <span className="text-muted-foreground">(costo por tira ÷ piezas por tira)</span>
-          </div>
+              <div className="rounded-lg bg-muted px-3 py-2 text-sm">
+                Costo unitario ={" "}
+                <span className="font-semibold text-foreground">
+                  {costoUnitario !== null ? `$${costoUnitario.toFixed(2)}` : "— (falta piezas por tira)"}
+                </span>{" "}
+                <span className="text-muted-foreground">(costo por tira ÷ piezas por tira)</span>
+              </div>
+            </>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="stock_piezas">Stock (piezas) *</Label>
-            <Input id="stock_piezas" type="number" step="any" min="0" {...form.register("stock_piezas")} />
+            <Input
+              id="stock_piezas"
+              type="number"
+              step="any"
+              min="0"
+              {...form.register("stock_piezas", { onChange: () => setStockTocado(true) })}
+            />
             {form.formState.errors.stock_piezas && (
               <p className="text-sm text-destructive">{form.formState.errors.stock_piezas.message}</p>
             )}
@@ -219,6 +268,7 @@ function valoresIniciales(material: MaterialRow | null): MaterialFormValues {
     return {
       id_material: "",
       nombre: "",
+      categoria: "ingrediente",
       descripcion: "",
       largo_mm: undefined,
       ancho_mm: undefined,
@@ -231,6 +281,7 @@ function valoresIniciales(material: MaterialRow | null): MaterialFormValues {
   return {
     id_material: material.id_material,
     nombre: material.nombre ?? "",
+    categoria: material.categoria,
     descripcion: material.descripcion ?? "",
     largo_mm: material.largo_mm ?? undefined,
     ancho_mm: material.ancho_mm ?? undefined,

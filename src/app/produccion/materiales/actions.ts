@@ -16,6 +16,7 @@ export async function crearMaterial(values: MaterialFormValues) {
   const { error } = await supabase.from("materiales").insert({
     id_material: data.id_material,
     nombre: data.nombre || null,
+    categoria: data.categoria,
     descripcion: data.descripcion || null,
     largo_mm: data.largo_mm ?? null,
     ancho_mm: data.ancho_mm ?? null,
@@ -46,6 +47,7 @@ export async function actualizarMaterial(id_material: string, values: MaterialFo
     .from("materiales")
     .update({
       nombre: data.nombre || null,
+      categoria: data.categoria,
       descripcion: data.descripcion || null,
       largo_mm: data.largo_mm ?? null,
       ancho_mm: data.ancho_mm ?? null,

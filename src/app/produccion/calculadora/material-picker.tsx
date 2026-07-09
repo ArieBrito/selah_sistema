@@ -45,7 +45,7 @@ export function MaterialPicker({
                   }}
                 >
                   <span className="flex-1">{m.nombre}</span>
-                  <span className="text-xs text-muted-foreground">${m.costoUnitario.toFixed(4)}</span>
+                  <span className="text-xs text-muted-foreground">${m.costoUnitario.toFixed(2)}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -71,24 +71,25 @@ export function CompraForm({
   const [nombreEmpleadoNuevo, setNombreEmpleadoNuevo] = useState("");
   const [materialFormAbierto, setMaterialFormAbierto] = useState(false);
 
-  // Reinicia el formulario cada vez que el diálogo se abre (o cambia la compra a editar),
+  // Reinicia el formulario cada vez que el diálogo pasa de cerrado a abierto,
   // siguiendo el patrón de React para ajustar estado durante el render en vez de un efecto.
-  const signature = `${open}:${compra?.id_compra ?? "nuevo"}`;
-  const [signatureAplicada, setSignatureAplicada] = useState(signature);
-  if (open && signature !== signatureAplicada) {
-    setSignatureAplicada(signature);
-    setCampos(valoresIniciales(compra));
-    setCreandoProveedor(false);
-    setCreandoEmpleado(false);
+  const [openAnterior, setOpenAnterior] = useState(open);
+  if (open !== openAnterior) {
+    setOpenAnterior(open);
+    if (open) {
+      setCampos(valoresIniciales(compra));
+      setCreandoProveedor(false);
+      setCreandoEmpleado(false);
+    }
   }
 
   const { ticket, fecha, idProveedor, idMetodo, idEmpleado, lineas } = campos;
   const total = lineas.reduce((suma, l) => suma + l.cantidad * l.costo_unit, 0);
 
-  function agregarLinea(material: MaterialOption) {
+  function agregarLinea(material: MaterialOption, costoInicial = 0) {
     setCampos((prev) => ({
       ...prev,
-      lineas: [...prev.lineas, { id_material: material.id_material, nombre: material.nombre, cantidad: 1, costo_unit: 0 }],
+      lineas: [...prev.lineas, { id_material: material.id_material, nombre: material.nombre, cantidad: 1, costo_unit: costoInicial }],
     }));
     setPickerAbierto(false);
   }
@@ -155,9 +156,9 @@ export function CompraForm({
 
   const disponibles = materialesLocal.filter((m) => !lineas.some((l) => l.id_material === m.id_material));
 
-  function handleMaterialCreado(material: MaterialOption) {
-    setMaterialesLocal((prev) => [...prev, material]);
-    agregarLinea(material);
+  function handleMaterialCreado(material: MaterialOption & { costo_tira: number }) {
+    setMaterialesLocal((prev) => [...prev, { id_material: material.id_material, nombre: material.nombre }]);
+    agregarLinea(material, material.costo_tira);
   }
 
   return (

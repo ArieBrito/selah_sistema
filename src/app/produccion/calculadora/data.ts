@@ -9,6 +9,7 @@ export async function obtenerContextoPrecios() {
     supabase
       .from("materiales")
       .select("id_material, nombre, costo_unitario")
+      .eq("categoria", "ingrediente")
       .not("costo_unitario", "is", null)
       .order("id_material"),
   ]);

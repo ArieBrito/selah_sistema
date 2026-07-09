@@ -176,7 +176,7 @@ export function Configurador({
                           onChange={(e) => actualizarCantidad(l.id_material, Number(e.target.value))}
                         />
                       </td>
-                      <td className="px-3 py-2 text-muted-foreground">${l.costoUnitario.toFixed(4)}</td>
+                      <td className="px-3 py-2 text-muted-foreground">${l.costoUnitario.toFixed(2)}</td>
                       <td className="px-3 py-2 font-medium text-foreground">${(l.cantidad * l.costoUnitario).toFixed(2)}</td>
                       <td className="px-3 py-2">
                         <Button size="icon" variant="ghost" onClick={() => quitarMaterial(l.id_material)}>
