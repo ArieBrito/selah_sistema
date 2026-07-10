@@ -91,6 +91,7 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
+              <TableHead>ID</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Categoría</TableHead>
               <TableHead>Clasificación</TableHead>
@@ -106,13 +107,14 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
           <TableBody>
             {listaFiltrada.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={11} className="py-10 text-center text-muted-foreground">
                   No hay productos que coincidan con la búsqueda.
                 </TableCell>
               </TableRow>
             )}
             {listaFiltrada.map((p) => (
               <TableRow key={p.id_producto} className="group">
+                <TableCell className="text-muted-foreground">{p.id_producto}</TableCell>
                 <TableCell className="font-medium text-foreground">{p.nombre}</TableCell>
                 <TableCell className="text-muted-foreground">{p.categoriaNombre ?? "—"}</TableCell>
                 <TableCell>
