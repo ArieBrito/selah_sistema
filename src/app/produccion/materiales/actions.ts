@@ -36,6 +36,8 @@ export async function crearMaterial(values: MaterialFormValues) {
 
   revalidatePath("/produccion/materiales");
   revalidatePath("/produccion/calculadora");
+  revalidatePath("/produccion/calculadora/nuevo");
+  revalidatePath("/produccion/calculadora/[id]", "page");
   return { ok: true as const };
 }
 
@@ -63,6 +65,8 @@ export async function actualizarMaterial(id_material: string, values: MaterialFo
 
   revalidatePath("/produccion/materiales");
   revalidatePath("/produccion/calculadora");
+  revalidatePath("/produccion/calculadora/nuevo");
+  revalidatePath("/produccion/calculadora/[id]", "page");
   return { ok: true as const };
 }
 
@@ -88,6 +92,8 @@ export async function eliminarMaterial(id_material: string) {
 
   revalidatePath("/produccion/materiales");
   revalidatePath("/produccion/calculadora");
+  revalidatePath("/produccion/calculadora/nuevo");
+  revalidatePath("/produccion/calculadora/[id]", "page");
   return { ok: true as const };
 }
 
