@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { href: "/produccion/compras", label: "Registro de compras" },
   { href: "/produccion/materiales", label: "Materiales" },
-  { href: "/produccion/calculadora", label: "Calculadora de precios" },
   { href: "/produccion/productos", label: "Catálogo de productos" },
   { href: "/produccion/configuracion", label: "Configuración" },
 ];

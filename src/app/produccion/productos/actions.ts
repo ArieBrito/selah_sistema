@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 
-export async function eliminarProducto(id_producto: number) {
+export async function eliminarProducto(id_producto: string) {
   const { error } = await supabase.from("productos").delete().eq("id_producto", id_producto);
 
   if (error) {
@@ -29,7 +29,7 @@ export async function eliminarProducto(id_producto: number) {
   return { ok: true as const };
 }
 
-export async function cambiarActivoProducto(id_producto: number, activo: boolean) {
+export async function cambiarActivoProducto(id_producto: string, activo: boolean) {
   const { error } = await supabase.from("productos").update({ activo }).eq("id_producto", id_producto);
   if (error) throw new Error(error.message);
   revalidatePath("/produccion/productos");

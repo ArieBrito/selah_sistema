@@ -23,11 +23,12 @@ import { BadgeClasificacion } from "@/components/badge-clasificacion";
 import { eliminarProducto, cambiarActivoProducto } from "./actions";
 
 type ProductoRow = {
-  id_producto: number;
+  id_producto: string;
   nombre: string;
   categoriaNombre: string | null;
   id_clasif: string | null;
   tipoHiloNombre: string | null;
+  tamanoNombre: string | null;
   precio: number;
   stock_piezas: number;
   activo: boolean;
@@ -93,6 +94,7 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
               <TableHead>Nombre</TableHead>
               <TableHead>Categoría</TableHead>
               <TableHead>Clasificación</TableHead>
+              <TableHead>Talla</TableHead>
               <TableHead>Hilo</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Margen real</TableHead>
@@ -104,7 +106,7 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
           <TableBody>
             {listaFiltrada.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={10} className="py-10 text-center text-muted-foreground">
                   No hay productos que coincidan con la búsqueda.
                 </TableCell>
               </TableRow>
@@ -116,6 +118,7 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
                 <TableCell>
                   <BadgeClasificacion clasif={p.id_clasif} />
                 </TableCell>
+                <TableCell className="text-muted-foreground">{p.tamanoNombre ?? "—"}</TableCell>
                 <TableCell className="text-muted-foreground">{p.tipoHiloNombre ?? "—"}</TableCell>
                 <TableCell className="font-semibold text-foreground">${p.precio.toFixed(2)}</TableCell>
                 <TableCell className={p.margenReal >= 0.3 ? "text-primary" : "text-destructive"}>

@@ -11,10 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { BadgeClasificacion } from "@/components/badge-clasificacion";
 import { calcularMargenReal, calcularPrecioFinal, calcularResumen, margenToMarkup, type NivelClasificacion } from "@/lib/pricing";
-import { guardarDiseno } from "./actions";
+import { crearCategoria, guardarDiseno } from "./actions";
 import { MaterialPicker, type MaterialOption } from "./material-picker";
+import { CategoriaPicker, type CategoriaOption } from "./categoria-picker";
 
 type Linea = { id_material: string; nombre: string; costoUnitario: number; cantidad: number };
+type TamanoOption = { id_tamano: number; nombre: string; cm: number | null };
 
 export function Configurador({
   contexto,
@@ -25,17 +27,24 @@ export function Configurador({
     niveles: NivelClasificacion[];
     tiposHilo: { id: number; nombre: string; costo: number }[];
     materiales: MaterialOption[];
+    categorias: CategoriaOption[];
+    tamanos: TamanoOption[];
   };
   disenoExistente?: {
-    id: number;
+    id: string;
     nombre: string;
+    id_categoria: number | null;
     id_tipo_hilo: number | null;
+    id_tamano: number;
+    stockPiezas: number;
     precioActual: number;
     lineas: { id_material: string; cantidad: number }[];
   } | null;
 }) {
   const router = useRouter();
   const [nombre, setNombre] = useState(disenoExistente?.nombre ?? "");
+  const [categorias, setCategorias] = useState<CategoriaOption[]>(contexto.categorias);
+  const [idCategoria, setIdCategoria] = useState<number | null>(disenoExistente?.id_categoria ?? null);
   const [idTipoHilo, setIdTipoHilo] = useState<number | null>(
     disenoExistente?.id_tipo_hilo ?? contexto.tiposHilo[0]?.id ?? null
   );
@@ -47,6 +56,28 @@ export function Configurador({
   );
   const [precioManual, setPrecioManual] = useState("");
   const [guardando, setGuardando] = useState(false);
+
+  // Edición: una talla fija (esta fila ya es una talla específica).
+  const [idTamanoEdicion, setIdTamanoEdicion] = useState<number>(disenoExistente?.id_tamano ?? contexto.tamanos[0]?.id_tamano ?? 1);
+  const [stockEdicion, setStockEdicion] = useState(String(disenoExistente?.stockPiezas ?? 0));
+
+  // Creación: puede marcarse stock en varias tallas a la vez, cada una genera su propia fila.
+  const [tallasSeleccionadas, setTallasSeleccionadas] = useState<Record<number, string>>({});
+
+  async function crearCategoriaYSeleccionar(nombreNueva: string) {
+    const nueva = await crearCategoria(nombreNueva);
+    setCategorias((prev) => [...prev, nueva]);
+    setIdCategoria(nueva.id_categoria);
+  }
+
+  function alternarTalla(id_tamano: number, marcada: boolean) {
+    setTallasSeleccionadas((prev) => {
+      const next = { ...prev };
+      if (marcada) next[id_tamano] = next[id_tamano] ?? "0";
+      else delete next[id_tamano];
+      return next;
+    });
+  }
 
   const costoHilo = contexto.tiposHilo.find((t) => t.id === idTipoHilo)?.costo ?? 0;
 
@@ -81,16 +112,29 @@ export function Configurador({
 
   async function guardar() {
     if (!nombre.trim()) return toast.error("Ponle un nombre al diseño.");
+    if (!idCategoria) return toast.error("Selecciona una categoría.");
     if (!idTipoHilo) return toast.error("Selecciona un tipo de hilo.");
     if (lineas.length === 0) return toast.error("Agrega al menos un material.");
+    if (!disenoExistente && Object.keys(tallasSeleccionadas).length === 0) {
+      return toast.error("Marca al menos una talla con su stock.");
+    }
 
     setGuardando(true);
     const resultado = await guardarDiseno({
       id: disenoExistente?.id,
       nombre: nombre.trim(),
+      id_categoria: idCategoria,
       id_tipo_hilo: idTipoHilo,
       lineas: lineas.map((l) => ({ id_material: l.id_material, cantidad: l.cantidad })),
       precioManual: resumen.nivel ? undefined : Number(precioManual) || undefined,
+      ...(disenoExistente
+        ? { id_tamano: idTamanoEdicion, stockPiezas: Number(stockEdicion) || 0 }
+        : {
+            tallas: Object.entries(tallasSeleccionadas).map(([id_tamano, stock]) => ({
+              id_tamano: Number(id_tamano),
+              stockPiezas: Number(stock) || 0,
+            })),
+          }),
     });
     setGuardando(false);
 
@@ -98,8 +142,8 @@ export function Configurador({
       toast.error(resultado.error);
       return;
     }
-    toast.success("Diseño guardado");
-    router.push("/produccion/calculadora");
+    toast.success(resultado.ids.length > 1 ? `Diseño guardado (${resultado.ids.length} tallas)` : "Diseño guardado");
+    router.push("/produccion/productos");
   }
 
   return (
@@ -113,6 +157,16 @@ export function Configurador({
             className="text-lg"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Categoría</Label>
+          <CategoriaPicker
+            categorias={categorias}
+            value={idCategoria}
+            onSeleccionar={setIdCategoria}
+            onCrear={crearCategoriaYSeleccionar}
           />
         </div>
 
@@ -135,6 +189,73 @@ export function Configurador({
             ))}
           </div>
         </div>
+
+        {disenoExistente ? (
+          <div className="space-y-1.5">
+            <Label>Talla</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              {contexto.tamanos.map((t) => (
+                <button
+                  key={t.id_tamano}
+                  type="button"
+                  onClick={() => setIdTamanoEdicion(t.id_tamano)}
+                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                    idTamanoEdicion === t.id_tamano
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-foreground hover:border-primary"
+                  }`}
+                >
+                  {t.nombre}
+                  {t.cm ? ` · ${t.cm}cm` : ""}
+                </button>
+              ))}
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                className="w-28"
+                placeholder="Stock"
+                value={stockEdicion}
+                onChange={(e) => setStockEdicion(e.target.value)}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Label>Tallas y stock</Label>
+            <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+              {contexto.tamanos.map((t) => {
+                const marcada = t.id_tamano in tallasSeleccionadas;
+                return (
+                  <div key={t.id_tamano} className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      className="size-4"
+                      checked={marcada}
+                      onChange={(e) => alternarTalla(t.id_tamano, e.target.checked)}
+                    />
+                    <span className="w-32 text-sm text-foreground">
+                      {t.nombre}
+                      {t.cm ? ` · ${t.cm}cm` : ""}
+                    </span>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="w-28"
+                      placeholder="Stock"
+                      disabled={!marcada}
+                      value={tallasSeleccionadas[t.id_tamano] ?? ""}
+                      onChange={(e) =>
+                        setTallasSeleccionadas((prev) => ({ ...prev, [t.id_tamano]: e.target.value }))
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">

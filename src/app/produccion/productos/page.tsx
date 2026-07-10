@@ -3,7 +3,7 @@ import { calcularCostoCargado, calcularCostoMateriales, calcularMargenReal } fro
 import { ProductosTable } from "./productos-table";
 
 type ProductoRow = {
-  id_producto: number;
+  id_producto: string;
   nombre: string;
   id_clasif: string | null;
   precio: string;
@@ -11,6 +11,7 @@ type ProductoRow = {
   activo: boolean;
   categoria: { nombre: string } | null;
   tipo_hilo: { nombre: string; costo: string } | null;
+  tamano: { nombre: string } | null;
   materiales: { cantidad: string; material: { costo_unitario: string | null } }[];
 };
 
@@ -19,7 +20,7 @@ export default async function ProductosPage() {
     supabase
       .from("productos")
       .select(
-        "id_producto, nombre, id_clasif, precio, stock_piezas, activo, categoria:categorias(nombre), tipo_hilo:tipos_hilo(nombre, costo), materiales:producto_materiales(cantidad, material:materiales(costo_unitario))"
+        "id_producto, nombre, id_clasif, precio, stock_piezas, activo, categoria:categorias(nombre), tipo_hilo:tipos_hilo(nombre, costo), tamano:tamanos(nombre), materiales:producto_materiales(cantidad, material:materiales(costo_unitario))"
       )
       .order("nombre")
       .returns<ProductoRow[]>(),
@@ -46,6 +47,7 @@ export default async function ProductosPage() {
       categoriaNombre: p.categoria?.nombre ?? null,
       id_clasif: p.id_clasif,
       tipoHiloNombre: p.tipo_hilo?.nombre ?? null,
+      tamanoNombre: p.tamano?.nombre ?? null,
       precio,
       stock_piezas: Number(p.stock_piezas),
       activo: p.activo,

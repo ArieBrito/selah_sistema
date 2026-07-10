@@ -4,7 +4,7 @@ import { Configurador } from "../configurador";
 
 export default async function EditarDisenoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [contexto, diseno] = await Promise.all([obtenerContextoPrecios(), obtenerDisenoParaEditar(Number(id))]);
+  const [contexto, diseno] = await Promise.all([obtenerContextoPrecios(), obtenerDisenoParaEditar(id)]);
 
   if (!diseno) notFound();
 
