@@ -43,7 +43,7 @@ export async function obtenerDisenoParaEditar(id: string) {
   const { data: producto } = await supabase
     .from("productos")
     .select(
-      "id_producto, nombre, id_categoria, id_tipo_hilo, id_tamano, stock_piezas, precio, materiales:producto_materiales(id_material, cantidad)"
+      "id_producto, nombre, descripcion, id_categoria, id_tipo_hilo, id_tamano, stock_piezas, precio, materiales:producto_materiales(id_material, cantidad)"
     )
     .eq("id_producto", id)
     .maybeSingle();
@@ -52,6 +52,7 @@ export async function obtenerDisenoParaEditar(id: string) {
   return {
     id: producto.id_producto,
     nombre: producto.nombre,
+    descripcion: producto.descripcion,
     id_categoria: producto.id_categoria,
     id_tipo_hilo: producto.id_tipo_hilo,
     id_tamano: producto.id_tamano,

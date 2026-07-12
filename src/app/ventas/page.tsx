@@ -1,11 +1,16 @@
-export default function VentasPage() {
+import { listarVentas, obtenerContextoVentas } from "./data";
+import { VentasTable } from "./ventas-table";
+
+export default async function VentasPage() {
+  const [ventas, contexto] = await Promise.all([listarVentas(), obtenerContextoVentas()]);
+
   return (
-    <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-3 px-4 py-32 text-center">
-      <span className="text-5xl">💰</span>
-      <h1 className="text-2xl font-semibold text-foreground">Modo Ventas</h1>
-      <p className="max-w-md text-muted-foreground">
-        Próximamente. Por ahora, usa el interruptor de arriba para volver al Modo Producción.
-      </p>
-    </div>
+    <VentasTable
+      ventas={ventas}
+      canales={contexto.canales}
+      metodos={contexto.metodos}
+      clientes={contexto.clientes}
+      productos={contexto.productos}
+    />
   );
 }

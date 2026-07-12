@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { BadgeClasificacion } from "@/components/badge-clasificacion";
@@ -33,6 +34,7 @@ export function Configurador({
   disenoExistente?: {
     id: string;
     nombre: string;
+    descripcion?: string | null;
     id_categoria: number | null;
     id_tipo_hilo: number | null;
     id_tamano: number;
@@ -43,6 +45,7 @@ export function Configurador({
 }) {
   const router = useRouter();
   const [nombre, setNombre] = useState(disenoExistente?.nombre ?? "");
+  const [descripcion, setDescripcion] = useState(disenoExistente?.descripcion ?? "");
   const [categorias, setCategorias] = useState<CategoriaOption[]>(contexto.categorias);
   const [idCategoria, setIdCategoria] = useState<number | null>(disenoExistente?.id_categoria ?? null);
   const [idTipoHilo, setIdTipoHilo] = useState<number | null>(
@@ -123,6 +126,7 @@ export function Configurador({
     const resultado = await guardarDiseno({
       id: disenoExistente?.id,
       nombre: nombre.trim(),
+      descripcion: descripcion.trim() || undefined,
       id_categoria: idCategoria,
       id_tipo_hilo: idTipoHilo,
       lineas: lineas.map((l) => ({ id_material: l.id_material, cantidad: l.cantidad })),
@@ -157,6 +161,17 @@ export function Configurador({
             className="text-lg"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="descripcion-diseno">Descripción</Label>
+          <Textarea
+            id="descripcion-diseno"
+            rows={2}
+            placeholder="Detalles del diseño (opcional)"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
           />
         </div>
 
@@ -375,7 +390,7 @@ export function Configurador({
             )}
             <p className="text-xs text-muted-foreground">Markup equivalente: {(markupReal * 100).toFixed(1)}%</p>
 
-            <Button size="lg" className="w-full" onClick={guardar} disabled={guardando}>
+            <Button size="lg" className="w-full" onClick={guardar} loading={guardando}>
               Guardar diseño
             </Button>
           </CardContent>

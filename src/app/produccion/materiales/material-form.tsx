@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { materialFormSchema, materialCategorias, type MaterialFormValues } from "@/lib/validations";
 import { crearMaterial, actualizarMaterial, crearProveedor } from "./actions";
@@ -39,6 +38,7 @@ export function MaterialForm({
   const esEdicion = material !== null;
   const [creandoProveedor, setCreandoProveedor] = useState(false);
   const [nombreProveedorNuevo, setNombreProveedorNuevo] = useState("");
+  const [guardandoProveedor, setGuardandoProveedor] = useState(false);
   const [stockTocado, setStockTocado] = useState(false);
 
   const form = useForm<z.input<typeof materialFormSchema>, unknown, MaterialFormValues>({
@@ -86,7 +86,9 @@ export function MaterialForm({
 
   async function handleCrearProveedor() {
     if (!nombreProveedorNuevo.trim()) return;
+    setGuardandoProveedor(true);
     const resultado = await crearProveedor(nombreProveedorNuevo.trim());
+    setGuardandoProveedor(false);
     if (resultado.ok) {
       onProveedorCreado({ id: resultado.proveedor.id_proveedor, nombre: resultado.proveedor.nombre });
       form.setValue("id_proveedor", resultado.proveedor.id_proveedor);
@@ -143,11 +145,6 @@ export function MaterialForm({
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="descripcion">Descripción</Label>
-            <Textarea id="descripcion" rows={2} {...form.register("descripcion")} />
-          </div>
-
           {categoria === "ingrediente" && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -171,7 +168,7 @@ export function MaterialForm({
                   value={nombreProveedorNuevo}
                   onChange={(e) => setNombreProveedorNuevo(e.target.value)}
                 />
-                <Button type="button" onClick={handleCrearProveedor}>
+                <Button type="button" onClick={handleCrearProveedor} loading={guardandoProveedor}>
                   Agregar
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => setCreandoProveedor(false)}>
@@ -253,7 +250,7 @@ export function MaterialForm({
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Button type="submit" loading={form.formState.isSubmitting}>
               Guardar
             </Button>
           </DialogFooter>
@@ -269,7 +266,6 @@ function valoresIniciales(material: MaterialRow | null): MaterialFormValues {
       id_material: "",
       nombre: "",
       categoria: "ingrediente",
-      descripcion: "",
       largo_mm: undefined,
       ancho_mm: undefined,
       costo_tira: 0,
@@ -282,7 +278,6 @@ function valoresIniciales(material: MaterialRow | null): MaterialFormValues {
     id_material: material.id_material,
     nombre: material.nombre ?? "",
     categoria: material.categoria,
-    descripcion: material.descripcion ?? "",
     largo_mm: material.largo_mm ?? undefined,
     ancho_mm: material.ancho_mm ?? undefined,
     costo_tira: material.costo_tira,

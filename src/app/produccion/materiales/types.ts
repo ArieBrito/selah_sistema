@@ -4,7 +4,6 @@ export type MaterialRow = {
   id_material: string;
   nombre: string | null;
   categoria: MaterialCategoria;
-  descripcion: string | null;
   largo_mm: number | null;
   ancho_mm: number | null;
   costo_tira: number;

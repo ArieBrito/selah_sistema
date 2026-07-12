@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2Icon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -56,7 +56,8 @@ export function CategoriaPicker({
                   onClick={crear}
                   disabled={creando}
                 >
-                  <Plus className="size-4" /> Crear “{busqueda.trim()}”
+                  {creando ? <Loader2Icon className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                  Crear “{busqueda.trim()}”
                 </button>
               ) : (
                 "Sin resultados."

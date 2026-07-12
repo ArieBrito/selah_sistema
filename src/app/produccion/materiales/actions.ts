@@ -17,7 +17,6 @@ export async function crearMaterial(values: MaterialFormValues) {
     id_material: data.id_material,
     nombre: data.nombre || null,
     categoria: data.categoria,
-    descripcion: data.descripcion || null,
     largo_mm: data.largo_mm ?? null,
     ancho_mm: data.ancho_mm ?? null,
     costo_tira: data.costo_tira,
@@ -50,7 +49,6 @@ export async function actualizarMaterial(id_material: string, values: MaterialFo
     .update({
       nombre: data.nombre || null,
       categoria: data.categoria,
-      descripcion: data.descripcion || null,
       largo_mm: data.largo_mm ?? null,
       ancho_mm: data.ancho_mm ?? null,
       costo_tira: data.costo_tira,

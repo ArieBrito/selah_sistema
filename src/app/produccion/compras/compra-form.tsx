@@ -67,8 +67,10 @@ export function CompraForm({
   const [materialesLocal, setMaterialesLocal] = useState(materiales);
   const [creandoProveedor, setCreandoProveedor] = useState(false);
   const [nombreProveedorNuevo, setNombreProveedorNuevo] = useState("");
+  const [guardandoProveedor, setGuardandoProveedor] = useState(false);
   const [creandoEmpleado, setCreandoEmpleado] = useState(false);
   const [nombreEmpleadoNuevo, setNombreEmpleadoNuevo] = useState("");
+  const [guardandoEmpleado, setGuardandoEmpleado] = useState(false);
   const [materialFormAbierto, setMaterialFormAbierto] = useState(false);
 
   // Reinicia el formulario cada vez que el diálogo pasa de cerrado a abierto,
@@ -107,7 +109,9 @@ export function CompraForm({
 
   async function handleCrearProveedor() {
     if (!nombreProveedorNuevo.trim()) return;
+    setGuardandoProveedor(true);
     const resultado = await crearProveedor(nombreProveedorNuevo.trim());
+    setGuardandoProveedor(false);
     if (resultado.ok) {
       setProveedoresLocal((prev) => [...prev, { id: resultado.proveedor.id_proveedor, nombre: resultado.proveedor.nombre }]);
       setCampos((prev) => ({ ...prev, idProveedor: resultado.proveedor.id_proveedor }));
@@ -119,7 +123,9 @@ export function CompraForm({
 
   async function handleCrearEmpleado() {
     if (!nombreEmpleadoNuevo.trim()) return;
+    setGuardandoEmpleado(true);
     const resultado = await crearEmpleado(nombreEmpleadoNuevo.trim());
+    setGuardandoEmpleado(false);
     if (resultado.ok) {
       setEmpleadosLocal((prev) => [...prev, { id: resultado.empleado.id_empleado, nombre: resultado.empleado.nombre }]);
       setCampos((prev) => ({ ...prev, idEmpleado: resultado.empleado.id_empleado }));
@@ -202,7 +208,7 @@ export function CompraForm({
                     value={nombreProveedorNuevo}
                     onChange={(e) => setNombreProveedorNuevo(e.target.value)}
                   />
-                  <Button type="button" size="sm" onClick={handleCrearProveedor}>
+                  <Button type="button" size="sm" onClick={handleCrearProveedor} loading={guardandoProveedor}>
                     OK
                   </Button>
                 </div>
@@ -263,7 +269,7 @@ export function CompraForm({
                     value={nombreEmpleadoNuevo}
                     onChange={(e) => setNombreEmpleadoNuevo(e.target.value)}
                   />
-                  <Button type="button" size="sm" onClick={handleCrearEmpleado}>
+                  <Button type="button" size="sm" onClick={handleCrearEmpleado} loading={guardandoEmpleado}>
                     OK
                   </Button>
                 </div>
@@ -398,7 +404,7 @@ export function CompraForm({
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button type="button" onClick={guardar} disabled={guardando}>
+          <Button type="button" onClick={guardar} loading={guardando}>
             Guardar
           </Button>
         </DialogFooter>

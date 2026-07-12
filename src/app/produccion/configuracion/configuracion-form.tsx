@@ -29,6 +29,8 @@ export function ConfiguracionForm({
   const [guardandoCostos, setGuardandoCostos] = useState(false);
   const [hilos, setHilos] = useState(tiposHilo);
   const [nuevoHilo, setNuevoHilo] = useState({ nombre: "", costo: "" });
+  const [guardandoHiloId, setGuardandoHiloId] = useState<number | null>(null);
+  const [agregandoHilo, setAgregandoHilo] = useState(false);
 
   const totalFijo = costos.costo_mano_obra + costos.costo_empaque + costos.costo_pago_hermana;
 
@@ -43,13 +45,17 @@ export function ConfiguracionForm({
   }
 
   async function guardarHilo(hilo: TipoHilo) {
+    setGuardandoHiloId(hilo.id);
     const resultado = await actualizarTipoHilo(hilo.id, { nombre: hilo.nombre, costo: hilo.costo });
+    setGuardandoHiloId(null);
     if (resultado.ok) toast.success(`${hilo.nombre} actualizado`);
   }
 
   async function agregarHilo() {
     if (!nuevoHilo.nombre.trim() || nuevoHilo.costo === "") return;
+    setAgregandoHilo(true);
     const resultado = await crearTipoHilo({ nombre: nuevoHilo.nombre.trim(), costo: Number(nuevoHilo.costo) });
+    setAgregandoHilo(false);
     if (resultado.ok) {
       toast.success("Tipo de hilo agregado");
       setNuevoHilo({ nombre: "", costo: "" });
@@ -106,7 +112,7 @@ export function ConfiguracionForm({
             <span className="text-sm text-muted-foreground">Total fijo por diseño</span>
             <span className="font-semibold text-foreground">${totalFijo.toFixed(2)}</span>
           </div>
-          <Button onClick={guardarCostos} disabled={guardandoCostos}>
+          <Button onClick={guardarCostos} loading={guardandoCostos}>
             Guardar costos fijos
           </Button>
         </CardContent>
@@ -147,7 +153,12 @@ export function ConfiguracionForm({
                     />
                   </TableCell>
                   <TableCell>
-                    <Button size="sm" variant="secondary" onClick={() => guardarHilo(hilo)}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => guardarHilo(hilo)}
+                      loading={guardandoHiloId === hilo.id}
+                    >
                       Guardar
                     </Button>
                   </TableCell>
@@ -172,7 +183,7 @@ export function ConfiguracionForm({
                   />
                 </TableCell>
                 <TableCell>
-                  <Button size="sm" variant="outline" className="gap-1" onClick={agregarHilo}>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={agregarHilo} loading={agregandoHilo}>
                     <Plus className="size-3.5" /> Agregar
                   </Button>
                 </TableCell>

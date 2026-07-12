@@ -100,8 +100,8 @@ export function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={entrando}>
-              {entrando ? "Entrando..." : "Iniciar sesión"}
+            <Button type="submit" className="w-full" loading={entrando}>
+              Iniciar sesión
             </Button>
           </form>
         </CardContent>

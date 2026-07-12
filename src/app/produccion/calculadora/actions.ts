@@ -10,6 +10,7 @@ const disenoSchema = z
   .object({
     id: z.string().length(7).optional(),
     nombre: z.string().trim().min(1, "El nombre del diseño es obligatorio"),
+    descripcion: z.string().trim().optional(),
     id_categoria: z.number().int().positive("Selecciona una categoría"),
     id_tipo_hilo: z.number().int().positive(),
     lineas: z
@@ -85,6 +86,7 @@ export async function guardarDiseno(input: DisenoInput) {
       p_precio: precioFinal,
       p_costo_mano_obra: costoFijoTotal,
       p_lineas: lineasRpc,
+      p_descripcion: data.descripcion || null,
     });
     if (error) throw new Error(error.message);
 
@@ -102,6 +104,7 @@ export async function guardarDiseno(input: DisenoInput) {
     p_costo_mano_obra: costoFijoTotal,
     p_lineas: lineasRpc,
     p_tallas: data.tallas!.map((t) => ({ id_tamano: t.id_tamano, stock_piezas: t.stockPiezas })),
+    p_descripcion: data.descripcion || null,
   });
   if (error) throw new Error(error.message);
 

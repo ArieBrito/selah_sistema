@@ -40,6 +40,7 @@ export function MaterialesTable({
   const [formAbierto, setFormAbierto] = useState(false);
   const [materialEditando, setMaterialEditando] = useState<MaterialRow | null>(null);
   const [materialAEliminar, setMaterialAEliminar] = useState<MaterialRow | null>(null);
+  const [eliminando, setEliminando] = useState(false);
 
   const listaFiltrada = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -80,7 +81,9 @@ export function MaterialesTable({
 
   async function confirmarEliminar() {
     if (!materialAEliminar) return;
+    setEliminando(true);
     const resultado = await eliminarMaterial(materialAEliminar.id_material);
+    setEliminando(false);
     if (!resultado.ok) {
       toast.error(resultado.error);
     } else {
@@ -245,7 +248,7 @@ export function MaterialesTable({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmarEliminar} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction onClick={confirmarEliminar} loading={eliminando} className="bg-destructive hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>

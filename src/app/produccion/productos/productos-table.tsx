@@ -39,6 +39,8 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
   const [productoAEliminar, setProductoAEliminar] = useState<ProductoRow | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [cambiandoActivo, setCambiandoActivo] = useState<string | null>(null);
 
   const listaFiltrada = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -47,13 +49,17 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
   }, [productos, busqueda]);
 
   async function alternarActivo(producto: ProductoRow) {
+    setCambiandoActivo(producto.id_producto);
     await cambiarActivoProducto(producto.id_producto, !producto.activo);
+    setCambiandoActivo(null);
     router.refresh();
   }
 
   async function confirmarEliminar() {
     if (!productoAEliminar) return;
+    setEliminando(true);
     const resultado = await eliminarProducto(productoAEliminar.id_producto);
+    setEliminando(false);
     if (!resultado.ok) {
       toast.error(resultado.error);
     } else {
@@ -128,7 +134,12 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
                 </TableCell>
                 <TableCell className="text-muted-foreground">{p.stock_piezas}</TableCell>
                 <TableCell>
-                  <Switch checked={p.activo} onCheckedChange={() => alternarActivo(p)} aria-label="Activo" />
+                  <Switch
+                    checked={p.activo}
+                    onCheckedChange={() => alternarActivo(p)}
+                    disabled={cambiandoActivo === p.id_producto}
+                    aria-label="Activo"
+                  />
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1 max-sm:opacity-100 opacity-0 transition-opacity group-hover:opacity-100">
@@ -154,7 +165,7 @@ export function ProductosTable({ productos }: { productos: ProductoRow[] }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmarEliminar} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction onClick={confirmarEliminar} loading={eliminando} className="bg-destructive hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
