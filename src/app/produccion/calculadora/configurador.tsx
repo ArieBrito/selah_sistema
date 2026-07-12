@@ -58,6 +58,7 @@ export function Configurador({
     })
   );
   const [precioManual, setPrecioManual] = useState("");
+  const [usarPrecioManual, setUsarPrecioManual] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
   // Edición: una talla fija (esta fila ya es una talla específica).
@@ -96,7 +97,7 @@ export function Configurador({
     [lineas, costoHilo, contexto.fijos, contexto.niveles, disenoExistente?.precioActual]
   );
 
-  const precioSugerido = resumen.nivel ? resumen.nivel.precio_tarifa : Number(precioManual) || 0;
+  const precioSugerido = resumen.nivel && !usarPrecioManual ? resumen.nivel.precio_tarifa : Number(precioManual) || 0;
   const precioFinal = calcularPrecioFinal(precioSugerido, disenoExistente?.precioActual);
   const margenReal = calcularMargenReal(precioFinal, resumen.costoCargado);
   const markupReal = margenToMarkup(Math.max(margenReal, 0));
@@ -121,6 +122,9 @@ export function Configurador({
     if (!disenoExistente && Object.keys(tallasSeleccionadas).length === 0) {
       return toast.error("Marca al menos una talla con su stock.");
     }
+    if (usarPrecioManual && (Number(precioManual) || 0) <= 0) {
+      return toast.error("Define un precio manual válido.");
+    }
 
     setGuardando(true);
     const resultado = await guardarDiseno({
@@ -130,7 +134,7 @@ export function Configurador({
       id_categoria: idCategoria,
       id_tipo_hilo: idTipoHilo,
       lineas: lineas.map((l) => ({ id_material: l.id_material, cantidad: l.cantidad })),
-      precioManual: resumen.nivel ? undefined : Number(precioManual) || undefined,
+      precioManual: resumen.nivel && !usarPrecioManual ? undefined : Number(precioManual) || undefined,
       ...(disenoExistente
         ? { id_tamano: idTamanoEdicion, stockPiezas: Number(stockEdicion) || 0 }
         : {
@@ -346,7 +350,22 @@ export function Configurador({
 
             <Separator />
 
-            {resumen.nivel ? (
+            {resumen.nivel && (
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="size-3.5"
+                  checked={usarPrecioManual}
+                  onChange={(e) => {
+                    setUsarPrecioManual(e.target.checked);
+                    if (e.target.checked) setPrecioManual(String(resumen.nivel!.precio_tarifa));
+                  }}
+                />
+                Usar precio manual
+              </label>
+            )}
+
+            {resumen.nivel && !usarPrecioManual ? (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Precio sugerido</span>
                 <div className="flex items-center gap-2">
@@ -357,16 +376,23 @@ export function Configurador({
             ) : (
               <div className="space-y-2 rounded-lg bg-accent/40 p-3">
                 <p className="text-sm text-accent-foreground">
-                  Este diseño supera la escalera estándar (costo &gt; $280). Define un precio manual.
+                  {resumen.nivel
+                    ? "Define el precio que quieras cobrar por este diseño."
+                    : "Este diseño supera la escalera estándar (costo > $280). Define un precio manual."}
                 </p>
-                <Input
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder={`Sugerido: $${resumen.precioMinimo.toFixed(2)} o más`}
-                  value={precioManual}
-                  onChange={(e) => setPrecioManual(e.target.value)}
-                />
+                <div className="flex items-center gap-2">
+                  <BadgeClasificacion clasif="M" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder={`Sugerido: $${(resumen.nivel ? resumen.nivel.precio_tarifa : resumen.precioMinimo).toFixed(2)}${
+                      resumen.nivel ? "" : " o más"
+                    }`}
+                    value={precioManual}
+                    onChange={(e) => setPrecioManual(e.target.value)}
+                  />
+                </div>
               </div>
             )}
 

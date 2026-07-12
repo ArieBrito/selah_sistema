@@ -59,15 +59,14 @@ export async function guardarDiseno(input: DisenoInput) {
 
   let id_clasif: string;
   let precioEscalera: number;
-  if (nivel) {
+  if (data.precioManual !== undefined) {
+    id_clasif = "M";
+    precioEscalera = data.precioManual;
+  } else if (nivel) {
     id_clasif = nivel.id_clasif;
     precioEscalera = nivel.precio_tarifa;
   } else {
-    if (data.precioManual === undefined) {
-      return { ok: false as const, error: "Este diseño no cabe en la escalera estándar: define un precio manual." };
-    }
-    id_clasif = "M";
-    precioEscalera = data.precioManual;
+    return { ok: false as const, error: "Este diseño no cabe en la escalera estándar: define un precio manual." };
   }
 
   const precioFinal = calcularPrecioFinal(precioEscalera, productoExistente ? Number(productoExistente.precio) : undefined);
