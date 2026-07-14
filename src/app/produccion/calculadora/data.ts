@@ -49,6 +49,12 @@ export async function obtenerDisenoParaEditar(id: string) {
     .maybeSingle();
   if (!producto) return null;
 
+  const { data: hermanos } = await supabase
+    .from("productos")
+    .select("id_producto, id_tamano, stock_piezas")
+    .eq("nombre", producto.nombre)
+    .neq("id_producto", id);
+
   return {
     id: producto.id_producto,
     nombre: producto.nombre,
@@ -59,5 +65,10 @@ export async function obtenerDisenoParaEditar(id: string) {
     stockPiezas: producto.stock_piezas,
     precioActual: Number(producto.precio),
     lineas: producto.materiales.map((pm) => ({ id_material: pm.id_material, cantidad: Number(pm.cantidad) })),
+    otrasTallas: (hermanos ?? []).map((h) => ({
+      id_producto: h.id_producto,
+      id_tamano: h.id_tamano,
+      stockPiezas: h.stock_piezas,
+    })),
   };
 }

@@ -41,6 +41,7 @@ export function Configurador({
     stockPiezas: number;
     precioActual: number;
     lineas: { id_material: string; cantidad: number }[];
+    otrasTallas: { id_producto: string; id_tamano: number; stockPiezas: number }[];
   } | null;
 }) {
   const router = useRouter();
@@ -61,9 +62,21 @@ export function Configurador({
   const [usarPrecioManual, setUsarPrecioManual] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
-  // Edición: una talla fija (esta fila ya es una talla específica).
+  // Edición: talla de esta fila específica.
   const [idTamanoEdicion, setIdTamanoEdicion] = useState<number>(disenoExistente?.id_tamano ?? contexto.tamanos[0]?.id_tamano ?? 1);
   const [stockEdicion, setStockEdicion] = useState(String(disenoExistente?.stockPiezas ?? 0));
+
+  // Edición: stock de otras tallas del mismo diseño (crea la fila si no existe, o actualiza su stock si ya existe).
+  const idProductoPorTalla = useMemo(() => {
+    const mapa: Record<number, string> = {};
+    for (const t of disenoExistente?.otrasTallas ?? []) mapa[t.id_tamano] = t.id_producto;
+    return mapa;
+  }, [disenoExistente]);
+  const [otrasTallasStock, setOtrasTallasStock] = useState<Record<number, string>>(() => {
+    const inicial: Record<number, string> = {};
+    for (const t of disenoExistente?.otrasTallas ?? []) inicial[t.id_tamano] = String(t.stockPiezas);
+    return inicial;
+  });
 
   // Creación: puede marcarse stock en varias tallas a la vez, cada una genera su propia fila.
   const [tallasSeleccionadas, setTallasSeleccionadas] = useState<Record<number, string>>({});
@@ -76,6 +89,15 @@ export function Configurador({
 
   function alternarTalla(id_tamano: number, marcada: boolean) {
     setTallasSeleccionadas((prev) => {
+      const next = { ...prev };
+      if (marcada) next[id_tamano] = next[id_tamano] ?? "0";
+      else delete next[id_tamano];
+      return next;
+    });
+  }
+
+  function alternarOtraTalla(id_tamano: number, marcada: boolean) {
+    setOtrasTallasStock((prev) => {
       const next = { ...prev };
       if (marcada) next[id_tamano] = next[id_tamano] ?? "0";
       else delete next[id_tamano];
@@ -136,7 +158,17 @@ export function Configurador({
       lineas: lineas.map((l) => ({ id_material: l.id_material, cantidad: l.cantidad })),
       precioManual: resumen.nivel && !usarPrecioManual ? undefined : Number(precioManual) || undefined,
       ...(disenoExistente
-        ? { id_tamano: idTamanoEdicion, stockPiezas: Number(stockEdicion) || 0 }
+        ? {
+            id_tamano: idTamanoEdicion,
+            stockPiezas: Number(stockEdicion) || 0,
+            tallasAdicionales: Object.entries(otrasTallasStock)
+              .filter(([id_tamano]) => Number(id_tamano) !== idTamanoEdicion)
+              .map(([id_tamano, stock]) => ({
+                id_tamano: Number(id_tamano),
+                stockPiezas: Number(stock) || 0,
+                id_producto: idProductoPorTalla[Number(id_tamano)],
+              })),
+          }
         : {
             tallas: Object.entries(tallasSeleccionadas).map(([id_tamano, stock]) => ({
               id_tamano: Number(id_tamano),
@@ -239,7 +271,49 @@ export function Configurador({
               />
             </div>
           </div>
-        ) : (
+        ) : null}
+
+        {disenoExistente && contexto.tamanos.filter((t) => t.id_tamano !== idTamanoEdicion).length > 0 && (
+          <div className="space-y-1.5">
+            <Label>Stock en otras tallas</Label>
+            <p className="text-xs text-muted-foreground">
+              Marca una talla para crear o actualizar su stock en este mismo diseño.
+            </p>
+            <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+              {contexto.tamanos
+                .filter((t) => t.id_tamano !== idTamanoEdicion)
+                .map((t) => {
+                  const marcada = t.id_tamano in otrasTallasStock;
+                  return (
+                    <div key={t.id_tamano} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="size-4"
+                        checked={marcada}
+                        onChange={(e) => alternarOtraTalla(t.id_tamano, e.target.checked)}
+                      />
+                      <span className="w-32 text-sm text-foreground">
+                        {t.nombre}
+                        {t.cm ? ` · ${t.cm}cm` : ""}
+                      </span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        className="w-28"
+                        placeholder="Stock"
+                        disabled={!marcada}
+                        value={otrasTallasStock[t.id_tamano] ?? ""}
+                        onChange={(e) => setOtrasTallasStock((prev) => ({ ...prev, [t.id_tamano]: e.target.value }))}
+                      />
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
+        {!disenoExistente && (
           <div className="space-y-1.5">
             <Label>Tallas y stock</Label>
             <div className="space-y-2 rounded-xl border border-border bg-card p-3">
