@@ -22,6 +22,15 @@ const disenoSchema = z
     tallas: z
       .array(z.object({ id_tamano: z.number().int().min(1).max(4), stockPiezas: z.coerce.number().int().min(0) }))
       .optional(),
+    tallasAdicionales: z
+      .array(
+        z.object({
+          id_tamano: z.number().int().min(1).max(4),
+          stockPiezas: z.coerce.number().int().min(0),
+          id_producto: z.string().length(7).optional(),
+        })
+      )
+      .optional(),
   })
   .refine((d) => (d.id ? d.id_tamano !== undefined && d.stockPiezas !== undefined : (d.tallas?.length ?? 0) >= 1), {
     message: "Selecciona al menos una talla",
@@ -89,9 +98,45 @@ export async function guardarDiseno(input: DisenoInput) {
     });
     if (error) throw new Error(error.message);
 
+    const ids = [id_producto as string];
+
+    for (const talla of data.tallasAdicionales ?? []) {
+      if (talla.id_producto) {
+        const { error: errorHermano } = await supabase.rpc("guardar_diseno", {
+          p_id_producto: talla.id_producto,
+          p_nombre: data.nombre,
+          p_id_categoria: data.id_categoria,
+          p_id_clasif: id_clasif,
+          p_id_tipo_hilo: data.id_tipo_hilo,
+          p_id_tamano: talla.id_tamano,
+          p_stock_piezas: talla.stockPiezas,
+          p_precio: precioFinal,
+          p_costo_mano_obra: costoFijoTotal,
+          p_lineas: lineasRpc,
+          p_descripcion: data.descripcion || null,
+        });
+        if (errorHermano) throw new Error(errorHermano.message);
+        ids.push(talla.id_producto);
+      } else {
+        const { data: idsNuevos, error: errorNuevo } = await supabase.rpc("crear_diseno_variantes", {
+          p_nombre: data.nombre,
+          p_id_categoria: data.id_categoria,
+          p_id_clasif: id_clasif,
+          p_id_tipo_hilo: data.id_tipo_hilo,
+          p_precio: precioFinal,
+          p_costo_mano_obra: costoFijoTotal,
+          p_lineas: lineasRpc,
+          p_tallas: [{ id_tamano: talla.id_tamano, stock_piezas: talla.stockPiezas }],
+          p_descripcion: data.descripcion || null,
+        });
+        if (errorNuevo) throw new Error(errorNuevo.message);
+        ids.push(...(idsNuevos as string[]));
+      }
+    }
+
     revalidatePath("/produccion/calculadora");
     revalidatePath("/produccion/productos");
-    return { ok: true as const, ids: [id_producto as string] };
+    return { ok: true as const, ids };
   }
 
   const { data: ids, error } = await supabase.rpc("crear_diseno_variantes", {
