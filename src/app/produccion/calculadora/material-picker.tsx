@@ -31,14 +31,14 @@ export function MaterialPicker({
       />
       <PopoverContent className="w-80 p-0" align="start">
         <Command>
-          <CommandInput placeholder="Buscar por ID de la cuenta..." />
+          <CommandInput placeholder="Buscar por ID o nombre..." />
           <CommandList>
             <CommandEmpty>Sin resultados.</CommandEmpty>
             <CommandGroup>
               {disponibles.map((m) => (
                 <CommandItem
                   key={m.id_material}
-                  value={m.id_material}
+                  value={`${m.id_material} ${m.nombre}`}
                   onSelect={() => {
                     onSeleccionar(m);
                     setOpen(false);
