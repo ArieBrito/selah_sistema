@@ -31,20 +31,22 @@ export function MaterialPicker({
       />
       <PopoverContent className="w-80 p-0" align="start">
         <Command>
-          <CommandInput placeholder="Buscar material..." />
+          <CommandInput placeholder="Buscar por ID de la cuenta..." />
           <CommandList>
             <CommandEmpty>Sin resultados.</CommandEmpty>
             <CommandGroup>
               {disponibles.map((m) => (
                 <CommandItem
                   key={m.id_material}
-                  value={m.nombre}
+                  value={m.id_material}
                   onSelect={() => {
                     onSeleccionar(m);
                     setOpen(false);
                   }}
                 >
-                  <span className="flex-1">{m.nombre}</span>
+                  <span className="flex-1">
+                    <span className="text-xs text-muted-foreground">{m.id_material}</span> {m.nombre}
+                  </span>
                   <span className="text-xs text-muted-foreground">${m.costoUnitario.toFixed(2)}</span>
                 </CommandItem>
               ))}
