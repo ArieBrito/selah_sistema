@@ -6,12 +6,14 @@ import { clienteFormSchema, ventaFormSchema, type ClienteFormValues, type VentaF
 import { obtenerCostosProductos } from "./data";
 
 async function construirDetalle(lineas: VentaFormValues["lineas"]) {
-  const costos = await obtenerCostosProductos(lineas.map((l) => l.id_producto));
+  const idsProducto = lineas.filter((l): l is typeof l & { id_producto: string } => l.id_producto !== null).map((l) => l.id_producto);
+  const costos = await obtenerCostosProductos(idsProducto);
   return lineas.map((l) => ({
     id_producto: l.id_producto,
+    nombre_manual: l.id_producto ? null : l.nombre,
     cantidad: l.cantidad,
     precio_unit: l.precio_unit,
-    costo_unit_snap: costos.get(l.id_producto) ?? 0,
+    costo_unit_snap: l.id_producto ? costos.get(l.id_producto) ?? 0 : l.costo_unit ?? 0,
   }));
 }
 

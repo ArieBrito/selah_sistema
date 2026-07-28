@@ -17,7 +17,18 @@ import { tiposVenta, type TipoVenta } from "@/lib/validations";
 import { crearVenta, actualizarVenta, crearCliente } from "./actions";
 import type { VentaRow, CanalOption, MetodoOption, ClienteOption, ProductoOption } from "./types";
 
-type Linea = { id_producto: string; nombre: string; cantidad: number; precio_unit: number };
+type Linea = {
+  id: string;
+  id_producto: string | null;
+  nombre: string;
+  cantidad: number;
+  precio_unit: number;
+  costo_unit: number | null;
+};
+
+function idLinea() {
+  return Math.random().toString(36).slice(2);
+}
 
 type Campos = {
   fechaHora: string;
@@ -59,7 +70,14 @@ function valoresIniciales(venta: VentaRow | null): Campos {
     idMetodo: venta.id_metodo,
     descuentoPct: Math.round(descuentoPct * 100) / 100,
     pagoRecibido: venta.pago_recibido,
-    lineas: venta.lineas.map((l) => ({ id_producto: l.id_producto, nombre: l.nombre, cantidad: l.cantidad, precio_unit: l.precio_unit })),
+    lineas: venta.lineas.map((l) => ({
+      id: idLinea(),
+      id_producto: l.id_producto,
+      nombre: l.nombre,
+      cantidad: l.cantidad,
+      precio_unit: l.precio_unit,
+      costo_unit: l.id_producto ? null : l.costo_unit_snap,
+    })),
   };
 }
 
@@ -86,6 +104,7 @@ export function VentaForm({
   const [campos, setCampos] = useState<Campos>(() => valoresIniciales(venta));
   const [guardando, setGuardando] = useState(false);
   const [pickerAbierto, setPickerAbierto] = useState(false);
+  const [nuevaLinea, setNuevaLinea] = useState({ nombre: "", cantidad: 1, precio_unit: 0, costo_unit: 0 });
 
   const [clientesLocal, setClientesLocal] = useState(clientes);
   const [creandoCliente, setCreandoCliente] = useState(false);
@@ -109,22 +128,44 @@ export function VentaForm({
   const total = subtotal - descuentoMonto;
   const cambio = pagoRecibido - total;
 
-  function agregarLinea(producto: ProductoOption) {
+  function agregarLineaCatalogo(producto: ProductoOption) {
     setCampos((prev) => ({
       ...prev,
-      lineas: [...prev.lineas, { id_producto: producto.id_producto, nombre: producto.nombre, cantidad: 1, precio_unit: producto.precio }],
+      lineas: [
+        ...prev.lineas,
+        { id: idLinea(), id_producto: producto.id_producto, nombre: producto.nombre, cantidad: 1, precio_unit: producto.precio, costo_unit: null },
+      ],
     }));
     setPickerAbierto(false);
   }
 
-  function quitarLinea(id_producto: string) {
-    setCampos((prev) => ({ ...prev, lineas: prev.lineas.filter((l) => l.id_producto !== id_producto) }));
-  }
-
-  function actualizarLinea(id_producto: string, cambios: Partial<Pick<Linea, "cantidad" | "precio_unit">>) {
+  function agregarLineaManual() {
+    if (!nuevaLinea.nombre.trim()) return toast.error("Escribe el nombre del producto.");
     setCampos((prev) => ({
       ...prev,
-      lineas: prev.lineas.map((l) => (l.id_producto === id_producto ? { ...l, ...cambios } : l)),
+      lineas: [
+        ...prev.lineas,
+        {
+          id: idLinea(),
+          id_producto: null,
+          nombre: nuevaLinea.nombre.trim(),
+          cantidad: nuevaLinea.cantidad,
+          precio_unit: nuevaLinea.precio_unit,
+          costo_unit: nuevaLinea.costo_unit,
+        },
+      ],
+    }));
+    setNuevaLinea({ nombre: "", cantidad: 1, precio_unit: 0, costo_unit: 0 });
+  }
+
+  function quitarLinea(id: string) {
+    setCampos((prev) => ({ ...prev, lineas: prev.lineas.filter((l) => l.id !== id) }));
+  }
+
+  function actualizarLinea(id: string, cambios: Partial<Pick<Linea, "cantidad" | "precio_unit" | "costo_unit">>) {
+    setCampos((prev) => ({
+      ...prev,
+      lineas: prev.lineas.map((l) => (l.id === id ? { ...l, ...cambios } : l)),
     }));
   }
 
@@ -160,7 +201,7 @@ export function VentaForm({
       id_metodo: idMetodo,
       descuento_pct: descuentoPct,
       pago_recibido: pagoRecibido,
-      lineas: lineas.map((l) => ({ id_producto: l.id_producto, cantidad: l.cantidad, precio_unit: l.precio_unit })),
+      lineas: lineas.map((l) => ({ id_producto: l.id_producto, nombre: l.nombre, cantidad: l.cantidad, precio_unit: l.precio_unit, costo_unit: l.costo_unit })),
     };
     const resultado = esEdicion ? await actualizarVenta(venta!.id_venta, payload) : await crearVenta(payload);
     setGuardando(false);
@@ -334,8 +375,8 @@ export function VentaForm({
               <Popover open={pickerAbierto} onOpenChange={setPickerAbierto}>
                 <PopoverTrigger
                   render={
-                    <Button type="button" variant="outline" size="sm" className="gap-1">
-                      <Plus className="size-3.5" /> Agregar producto
+                    <Button type="button" variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+                      Elegir del catálogo
                     </Button>
                   }
                 />
@@ -345,7 +386,7 @@ export function VentaForm({
                     <CommandList>
                       <CommandGroup>
                         {disponibles.map((p) => (
-                          <CommandItem key={p.id_producto} value={p.id_producto} onSelect={() => agregarLinea(p)}>
+                          <CommandItem key={p.id_producto} value={p.id_producto} onSelect={() => agregarLineaCatalogo(p)}>
                             {p.id_producto} — {p.nombre} — ${p.precio.toFixed(2)}
                           </CommandItem>
                         ))}
@@ -354,6 +395,50 @@ export function VentaForm({
                   </Command>
                 </PopoverContent>
               </Popover>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-border p-2 sm:grid-cols-[1fr_5rem_6rem_6rem_auto] sm:items-end">
+              <div className="col-span-2 space-y-1 sm:col-span-1">
+                <Label className="text-xs text-muted-foreground">Producto *</Label>
+                <Input
+                  placeholder="Nombre del producto"
+                  value={nuevaLinea.nombre}
+                  onChange={(e) => setNuevaLinea((prev) => ({ ...prev, nombre: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Cant.</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={nuevaLinea.cantidad}
+                  onChange={(e) => setNuevaLinea((prev) => ({ ...prev, cantidad: Number(e.target.value) }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Precio</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={nuevaLinea.precio_unit}
+                  onChange={(e) => setNuevaLinea((prev) => ({ ...prev, precio_unit: Number(e.target.value) }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Costo</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={nuevaLinea.costo_unit}
+                  onChange={(e) => setNuevaLinea((prev) => ({ ...prev, costo_unit: Number(e.target.value) }))}
+                />
+              </div>
+              <Button type="button" onClick={agregarLineaManual} className="gap-1">
+                <Plus className="size-3.5" /> Agregar
+              </Button>
             </div>
 
             {lineas.length === 0 ? (
@@ -368,13 +453,14 @@ export function VentaForm({
                       <th className="px-3 py-2 font-medium">Producto</th>
                       <th className="px-3 py-2 font-medium">Cantidad</th>
                       <th className="px-3 py-2 font-medium">Precio unit.</th>
+                      <th className="px-3 py-2 font-medium">Costo unit.</th>
                       <th className="px-3 py-2 font-medium">Subtotal</th>
                       <th className="w-10 px-3 py-2" />
                     </tr>
                   </thead>
                   <tbody>
                     {lineas.map((l) => (
-                      <tr key={l.id_producto} className="border-b border-border last:border-0">
+                      <tr key={l.id} className="border-b border-border last:border-0">
                         <td className="px-3 py-2 text-foreground">{l.nombre}</td>
                         <td className="px-3 py-2">
                           <Input
@@ -383,7 +469,7 @@ export function VentaForm({
                             step="1"
                             className="w-20"
                             value={l.cantidad}
-                            onChange={(e) => actualizarLinea(l.id_producto, { cantidad: Number(e.target.value) })}
+                            onChange={(e) => actualizarLinea(l.id, { cantidad: Number(e.target.value) })}
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -393,12 +479,26 @@ export function VentaForm({
                             step="any"
                             className="w-24"
                             value={l.precio_unit}
-                            onChange={(e) => actualizarLinea(l.id_producto, { precio_unit: Number(e.target.value) })}
+                            onChange={(e) => actualizarLinea(l.id, { precio_unit: Number(e.target.value) })}
                           />
+                        </td>
+                        <td className="px-3 py-2">
+                          {l.id_producto ? (
+                            <span className="text-xs text-muted-foreground">Automático</span>
+                          ) : (
+                            <Input
+                              type="number"
+                              min="0"
+                              step="any"
+                              className="w-24"
+                              value={l.costo_unit ?? 0}
+                              onChange={(e) => actualizarLinea(l.id, { costo_unit: Number(e.target.value) })}
+                            />
+                          )}
                         </td>
                         <td className="px-3 py-2 font-medium text-foreground">${(l.cantidad * l.precio_unit).toFixed(2)}</td>
                         <td className="px-3 py-2">
-                          <Button size="icon" variant="ghost" onClick={() => quitarLinea(l.id_producto)}>
+                          <Button size="icon" variant="ghost" onClick={() => quitarLinea(l.id)}>
                             <X className="size-4" />
                           </Button>
                         </td>

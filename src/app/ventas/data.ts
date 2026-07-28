@@ -36,7 +36,8 @@ type VentaQueryRow = {
   total: string;
   pago_recibido: string;
   detalle: {
-    id_producto: string;
+    id_producto: string | null;
+    nombre_manual: string | null;
     cantidad: number;
     precio_unit: string;
     costo_unit_snap: string;
@@ -48,7 +49,7 @@ export async function listarVentas() {
   const { data: ventas } = await supabase
     .from("ventas")
     .select(
-      "id_venta, fecha_hora, id_cliente, cliente:clientes(nombre, apellido), tipo_venta, id_canal, canal:canal_venta(nombre), id_metodo, metodo:metodos_pago(nombre), descuento, total, pago_recibido, detalle:venta_detalle(id_producto, cantidad, precio_unit, costo_unit_snap, producto:productos(nombre))"
+      "id_venta, fecha_hora, id_cliente, cliente:clientes(nombre, apellido), tipo_venta, id_canal, canal:canal_venta(nombre), id_metodo, metodo:metodos_pago(nombre), descuento, total, pago_recibido, detalle:venta_detalle(id_producto, nombre_manual, cantidad, precio_unit, costo_unit_snap, producto:productos(nombre))"
     )
     .order("fecha_hora", { ascending: false })
     .returns<VentaQueryRow[]>();
@@ -68,7 +69,7 @@ export async function listarVentas() {
     pago_recibido: Number(v.pago_recibido),
     lineas: v.detalle.map((d) => ({
       id_producto: d.id_producto,
-      nombre: d.producto?.nombre ?? d.id_producto,
+      nombre: d.producto?.nombre ?? d.nombre_manual ?? "Producto",
       cantidad: Number(d.cantidad),
       precio_unit: Number(d.precio_unit),
       costo_unit_snap: Number(d.costo_unit_snap),

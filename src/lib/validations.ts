@@ -78,9 +78,11 @@ export const ventaFormSchema = z.object({
   lineas: z
     .array(
       z.object({
-        id_producto: z.string().min(1),
+        id_producto: z.string().min(1).nullable(),
+        nombre: z.string().trim().min(1, "El nombre del producto es obligatorio"),
         cantidad: z.coerce.number().int().positive("Debe ser mayor a 0"),
         precio_unit: z.coerce.number().min(0, "No puede ser negativo"),
+        costo_unit: z.coerce.number().min(0, "No puede ser negativo").nullable().optional(),
       })
     )
     .min(1, "Agrega al menos un producto"),

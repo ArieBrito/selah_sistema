@@ -1,5 +1,5 @@
 export type VentaLineaRow = {
-  id_producto: string;
+  id_producto: string | null;
   nombre: string;
   cantidad: number;
   precio_unit: number;
