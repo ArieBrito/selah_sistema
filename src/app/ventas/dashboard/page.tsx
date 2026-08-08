@@ -1,7 +1,26 @@
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { obtenerCostosFijos, obtenerKpisVentas } from "../data";
 
 const META_ARRANQUE = { min: 150, max: 200 };
 const META_FINAL = { min: 546, max: 682 };
+
+const NOMBRES_MES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+function formatoMes(fecha: Date) {
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Parsea "YYYY-MM" a un Date del día 1 de ese mes; si no es válido, usa el mes en curso. */
+function parsearMes(mes: string | undefined): Date {
+  const match = mes?.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return new Date();
+  const [, anio, mesNum] = match;
+  return new Date(Number(anio), Number(mesNum) - 1, 1);
+}
 
 const COLOR_CANAL: Record<string, string> = {
   Personal: "#2f8f5e",
@@ -25,11 +44,22 @@ function pct(valor: number, total: number) {
   return total > 0 ? (valor / total) * 100 : 0;
 }
 
-export default async function DashboardVentasPage() {
+export default async function DashboardVentasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
+  const { mes } = await searchParams;
+  const mesRef = parsearMes(mes);
+
   const [{ unidadesMes, semanas, porCanal }, costosFijos] = await Promise.all([
-    obtenerKpisVentas(),
+    obtenerKpisVentas(mesRef),
     obtenerCostosFijos(),
   ]);
+
+  const mesAnterior = new Date(mesRef.getFullYear(), mesRef.getMonth() - 1, 1);
+  const mesSiguiente = new Date(mesRef.getFullYear(), mesRef.getMonth() + 1, 1);
+  const etiquetaMes = `${NOMBRES_MES[mesRef.getMonth()]} ${mesRef.getFullYear()}`;
 
   const escalaMax = Math.max(META_FINAL.max, unidadesMes) * 1.05;
   const totalCanales = porCanal.reduce((s, c) => s + c.total, 0);
@@ -58,9 +88,28 @@ export default async function DashboardVentasPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Indicadores clave del mes en curso.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Indicadores clave del mes seleccionado.</p>
+        </div>
+        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+          <Link
+            href={`/ventas/dashboard?mes=${formatoMes(mesAnterior)}`}
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Mes anterior"
+          >
+            <ChevronLeft className="size-4" />
+          </Link>
+          <span className="w-32 text-center text-sm font-medium text-foreground">{etiquetaMes}</span>
+          <Link
+            href={`/ventas/dashboard?mes=${formatoMes(mesSiguiente)}`}
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Mes siguiente"
+          >
+            <ChevronRight className="size-4" />
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

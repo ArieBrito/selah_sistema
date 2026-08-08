@@ -140,10 +140,9 @@ export async function obtenerCostosFijos() {
   };
 }
 
-export async function obtenerKpisVentas() {
-  const ahora = new Date();
-  const inicioMes = startOfMonth(ahora);
-  const finMes = endOfMonth(ahora);
+export async function obtenerKpisVentas(mesRef: Date = new Date()) {
+  const inicioMes = startOfMonth(mesRef);
+  const finMes = endOfMonth(mesRef);
 
   const { data } = await supabase
     .from("ventas")
