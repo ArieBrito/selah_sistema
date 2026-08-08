@@ -1,4 +1,4 @@
-import { obtenerKpisVentas } from "../data";
+import { obtenerCostosFijos, obtenerKpisVentas } from "../data";
 
 const META_ARRANQUE = { min: 150, max: 200 };
 const META_FINAL = { min: 546, max: 682 };
@@ -13,16 +13,48 @@ const COLOR_CANAL: Record<string, string> = {
 };
 const COLOR_SIN_CANAL = "#9a9890";
 
+const COLOR_REPARTO: Record<string, string> = {
+  "Mano de obra": "#a8c9b8",
+  Empaque: "#f0c05a",
+  Gaby: "#f5b8b0",
+  Arie: "#5f9c7d",
+  Reinversión: "#f2a05c",
+};
+
 function pct(valor: number, total: number) {
   return total > 0 ? (valor / total) * 100 : 0;
 }
 
 export default async function DashboardVentasPage() {
-  const { unidadesMes, semanas, porCanal } = await obtenerKpisVentas();
+  const [{ unidadesMes, semanas, porCanal }, costosFijos] = await Promise.all([
+    obtenerKpisVentas(),
+    obtenerCostosFijos(),
+  ]);
 
   const escalaMax = Math.max(META_FINAL.max, unidadesMes) * 1.05;
   const totalCanales = porCanal.reduce((s, c) => s + c.total, 0);
   const maxSemana = Math.max(1, ...semanas.map((s) => s.unidades));
+
+  // Reparto del dinero: por cada pieza vendida se separan primero los costos fijos
+  // (mano de obra, empaque, pago a Gaby); de lo que queda, 10% es para Arie y el
+  // resto se divide en partes iguales entre reinversión y Gaby.
+  const costoFijoUnitario = costosFijos.costo_mano_obra + costosFijos.costo_empaque + costosFijos.costo_pago_hermana;
+  const manoObraTotal = costosFijos.costo_mano_obra * unidadesMes;
+  const empaqueTotal = costosFijos.costo_empaque * unidadesMes;
+  const gabyFijoTotal = costosFijos.costo_pago_hermana * unidadesMes;
+  const costoFijoTotal = manoObraTotal + empaqueTotal + gabyFijoTotal;
+  const restante = Math.max(0, totalCanales - costoFijoTotal);
+  const arieTotal = restante * 0.1;
+  const reinversionTotal = (restante - arieTotal) * 0.5;
+  const gabyTotal = gabyFijoTotal + (restante - arieTotal) * 0.5;
+  const escalaReparto = Math.max(totalCanales, costoFijoTotal, 1);
+  const reparto = [
+    { nombre: "Mano de obra", total: manoObraTotal },
+    { nombre: "Empaque", total: empaqueTotal },
+    { nombre: "Gaby", total: gabyTotal },
+    { nombre: "Arie", total: arieTotal },
+    { nombre: "Reinversión", total: reinversionTotal },
+  ];
 
   return (
     <div className="space-y-4">
@@ -113,6 +145,43 @@ export default async function DashboardVentasPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* KPI 1.3 — Reparto del dinero */}
+      <div className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <div>
+          <h2 className="text-sm font-medium text-muted-foreground">Reparto del dinero</h2>
+          <p className="text-xs text-muted-foreground">
+            Por pieza vendida: ${costosFijos.costo_mano_obra.toFixed(2)} mano de obra + ${costosFijos.costo_pago_hermana.toFixed(2)} Gaby
+            + ${costosFijos.costo_empaque.toFixed(2)} empaque (${costoFijoUnitario.toFixed(2)} fijo). De lo que sobra: 10% Arie, el
+            resto se reparte mitad reinversión y mitad Gaby.
+          </p>
+        </div>
+
+        {unidadesMes === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Sin ventas registradas este mes.</p>
+        ) : (
+          <div className="space-y-3">
+            {reparto.map((r) => (
+              <div key={r.nombre} className="space-y-1">
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="font-medium text-foreground">{r.nombre}</span>
+                  <span className="text-muted-foreground">${r.total.toFixed(2)}</span>
+                </div>
+                <div className="h-2.5 rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${pct(r.total, escalaReparto)}%`, backgroundColor: COLOR_REPARTO[r.nombre] }}
+                  />
+                </div>
+              </div>
+            ))}
+            <div className="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Ingresos del mes</span>
+              <span className="font-semibold text-foreground">${totalCanales.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

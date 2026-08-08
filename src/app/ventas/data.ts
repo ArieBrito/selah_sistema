@@ -126,6 +126,20 @@ type VentaMesRow = {
 export type CanalKpi = { id_canal: number | null; nombre: string; unidades: number; total: number };
 export type SemanaKpi = { semana: number; rango: string; unidades: number };
 
+export async function obtenerCostosFijos() {
+  const { data: configuracion } = await supabase
+    .from("configuracion")
+    .upsert({ id: 1 })
+    .select("costo_mano_obra, costo_empaque, costo_pago_hermana")
+    .single();
+
+  return {
+    costo_mano_obra: Number(configuracion?.costo_mano_obra ?? 0),
+    costo_empaque: Number(configuracion?.costo_empaque ?? 0),
+    costo_pago_hermana: Number(configuracion?.costo_pago_hermana ?? 0),
+  };
+}
+
 export async function obtenerKpisVentas() {
   const ahora = new Date();
   const inicioMes = startOfMonth(ahora);
