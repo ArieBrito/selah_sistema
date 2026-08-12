@@ -66,7 +66,7 @@ export default async function DashboardVentasPage({
   const maxSemana = Math.max(1, ...semanas.map((s) => s.unidades));
 
   // Reparto del dinero: por cada pieza vendida se separan primero los costos fijos
-  // (mano de obra, empaque, pago a Gaby); de lo que queda, 10% es para Arie y el
+  // (mano de obra, empaque, pago a Gaby); de lo que queda, 15% es para Arie y el
   // resto se divide en partes iguales entre reinversión y Gaby.
   const costoFijoUnitario = costosFijos.costo_mano_obra + costosFijos.costo_empaque + costosFijos.costo_pago_hermana;
   const manoObraTotal = costosFijos.costo_mano_obra * unidadesMes;
@@ -74,7 +74,7 @@ export default async function DashboardVentasPage({
   const gabyFijoTotal = costosFijos.costo_pago_hermana * unidadesMes;
   const costoFijoTotal = manoObraTotal + empaqueTotal + gabyFijoTotal;
   const restante = Math.max(0, totalCanales - costoFijoTotal);
-  const arieTotal = restante * 0.1;
+  const arieTotal = restante * 0.15;
   const reinversionTotal = (restante - arieTotal) * 0.5;
   const gabyTotal = gabyFijoTotal + (restante - arieTotal) * 0.5;
   const escalaReparto = Math.max(totalCanales, costoFijoTotal, 1);
@@ -202,7 +202,7 @@ export default async function DashboardVentasPage({
           <h2 className="text-sm font-medium text-muted-foreground">Reparto del dinero</h2>
           <p className="text-xs text-muted-foreground">
             Por pieza vendida: ${costosFijos.costo_mano_obra.toFixed(2)} mano de obra + ${costosFijos.costo_pago_hermana.toFixed(2)} Gaby
-            + ${costosFijos.costo_empaque.toFixed(2)} empaque (${costoFijoUnitario.toFixed(2)} fijo). De lo que sobra: 10% Arie, el
+            + ${costosFijos.costo_empaque.toFixed(2)} empaque (${costoFijoUnitario.toFixed(2)} fijo). De lo que sobra: 15% Arie, el
             resto se reparte mitad reinversión y mitad Gaby.
           </p>
         </div>
