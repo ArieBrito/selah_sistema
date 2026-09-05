@@ -5,20 +5,17 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { href: "/produccion/compras", label: "Registro de compras" },
-  { href: "/produccion/gastos", label: "Gastos" },
-  { href: "/produccion/materiales", label: "Materiales" },
-  { href: "/produccion/productos", label: "Catálogo de productos" },
-  { href: "/produccion/configuracion", label: "Configuración" },
+  { href: "/ventas", label: "Registrar venta" },
+  { href: "/ventas/seguimiento", label: "Seguimiento" },
 ];
 
-export function ProduccionTabs() {
+export function VentasTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="no-scrollbar flex gap-1 overflow-x-auto border-b border-border">
+    <nav className="no-scrollbar mb-4 flex gap-1 overflow-x-auto border-b border-border">
       {TABS.map((tab) => {
-        const active = pathname?.startsWith(tab.href);
+        const active = tab.href === "/ventas" ? pathname === "/ventas" : pathname?.startsWith(tab.href);
         return (
           <Link
             key={tab.href}

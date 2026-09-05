@@ -1,26 +1,16 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { obtenerCostosFijos, obtenerKpisVentas } from "@/app/ventas/data";
+import {
+  obtenerClientesNuevosVsRecurrentesMes,
+  obtenerCostosFijos,
+  obtenerKpisProductosMes,
+  obtenerKpisVentas,
+} from "@/app/ventas/data";
+import { calcularMargenReal } from "@/lib/pricing";
+import { NOMBRES_MES, formatoMes, parsearMes } from "@/lib/mes";
 
 const META_ARRANQUE = { min: 150, max: 200 };
 const META_FINAL = { min: 546, max: 682 };
-
-const NOMBRES_MES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
-
-function formatoMes(fecha: Date) {
-  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
-}
-
-/** Parsea "YYYY-MM" a un Date del día 1 de ese mes; si no es válido, usa el mes en curso. */
-function parsearMes(mes: string | undefined): Date {
-  const match = mes?.match(/^(\d{4})-(\d{2})$/);
-  if (!match) return new Date();
-  const [, anio, mesNum] = match;
-  return new Date(Number(anio), Number(mesNum) - 1, 1);
-}
 
 const COLOR_CANAL: Record<string, string> = {
   Personal: "#2f8f5e",
@@ -52,10 +42,13 @@ export default async function DashboardVentasPage({
   const { mes } = await searchParams;
   const mesRef = parsearMes(mes);
 
-  const [{ unidadesMes, semanas, porCanal }, costosFijos] = await Promise.all([
-    obtenerKpisVentas(mesRef),
-    obtenerCostosFijos(),
-  ]);
+  const [{ unidadesMes, semanas, porCanal, numVentasMes, ingresoMes, costoMesNeto }, costosFijos, recurrencia, productosKpi] =
+    await Promise.all([
+      obtenerKpisVentas(mesRef),
+      obtenerCostosFijos(),
+      obtenerClientesNuevosVsRecurrentesMes(mesRef),
+      obtenerKpisProductosMes(mesRef),
+    ]);
 
   const mesAnterior = new Date(mesRef.getFullYear(), mesRef.getMonth() - 1, 1);
   const mesSiguiente = new Date(mesRef.getFullYear(), mesRef.getMonth() + 1, 1);
@@ -69,6 +62,15 @@ export default async function DashboardVentasPage({
   // (mano de obra, empaque, pago a Gaby); de lo que queda, 15% es para Arie y el
   // resto se divide en partes iguales entre reinversión y Gaby.
   const costoFijoUnitario = costosFijos.costo_mano_obra + costosFijos.costo_empaque + costosFijos.costo_pago_hermana;
+
+  // Margen bruto: no se guarda el costo de materiales por separado del costo cargado
+  // en cada venta, así que se aproxima restando el costo fijo unitario actual (mano de
+  // obra + empaque + pago Gaby) del costo cargado. Margen neto usa el costo cargado completo.
+  const costoMesBrutoAprox = Math.max(0, costoMesNeto - costoFijoUnitario * unidadesMes);
+  const margenBrutoPct = calcularMargenReal(ingresoMes, costoMesBrutoAprox) * 100;
+  const margenNetoPct = calcularMargenReal(ingresoMes, costoMesNeto) * 100;
+  const ticketPromedio = numVentasMes > 0 ? ingresoMes / numVentasMes : 0;
+
   const manoObraTotal = costosFijos.costo_mano_obra * unidadesMes;
   const empaqueTotal = costosFijos.costo_empaque * unidadesMes;
   const gabyFijoTotal = costosFijos.costo_pago_hermana * unidadesMes;
@@ -109,6 +111,38 @@ export default async function DashboardVentasPage({
           >
             <ChevronRight className="size-4" />
           </Link>
+        </div>
+      </div>
+
+      {/* KPI Rentabilidad */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="text-xs font-medium text-muted-foreground">Total de ventas</h3>
+          <p className="text-2xl font-semibold text-foreground">${ingresoMes.toFixed(2)}</p>
+          <p className="mt-1 text-[10px] text-muted-foreground/70">Σ (cantidad × precio)</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="text-xs font-medium text-muted-foreground">Margen bruto</h3>
+          <p className="text-2xl font-semibold text-foreground">{margenBrutoPct.toFixed(1)}%</p>
+          <p className="mt-1 text-[10px] text-muted-foreground/70">(ventas − costo materiales) / ventas</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="text-xs font-medium text-muted-foreground">Margen neto</h3>
+          <p className="text-2xl font-semibold text-foreground">{margenNetoPct.toFixed(1)}%</p>
+          <p className="mt-1 text-[10px] text-muted-foreground/70">(ventas − costo total) / ventas</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="text-xs font-medium text-muted-foreground">Ticket promedio</h3>
+          <p className="text-2xl font-semibold text-foreground">${ticketPromedio.toFixed(2)}</p>
+          <p className="mt-1 text-[10px] text-muted-foreground/70">ventas / N° de ventas</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="text-xs font-medium text-muted-foreground">Clientes recurrentes</h3>
+          <p className="text-2xl font-semibold text-foreground">{recurrencia.pctRecurrentes.toFixed(0)}%</p>
+          <p className="text-xs text-muted-foreground">
+            {recurrencia.recurrentes} de {recurrencia.totalClientes} cliente{recurrencia.totalClientes === 1 ? "" : "s"}
+          </p>
+          <p className="mt-1 text-[10px] text-muted-foreground/70">clientes con ≥2 compras / clientes del mes</p>
         </div>
       </div>
 
@@ -182,7 +216,8 @@ export default async function DashboardVentasPage({
                     <div className="flex items-baseline justify-between text-sm">
                       <span className="font-medium text-foreground">{c.nombre}</span>
                       <span className="text-muted-foreground">
-                        ${c.total.toFixed(2)} · {c.unidades} pieza{c.unidades === 1 ? "" : "s"}
+                        ${c.total.toFixed(2)} · {c.unidades} pieza{c.unidades === 1 ? "" : "s"} · ticket $
+                        {(c.total / c.numVentas).toFixed(2)}
                       </span>
                     </div>
                     <div className="h-2.5 rounded-full bg-muted">
@@ -229,6 +264,49 @@ export default async function DashboardVentasPage({
               <span className="text-muted-foreground">Ingresos del mes</span>
               <span className="font-semibold text-foreground">${totalCanales.toFixed(2)}</span>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* KPI 1.4 — Diseños vendidos en el mes */}
+      <div className="space-y-2 rounded-xl border border-border bg-card p-5">
+        <div>
+          <h2 className="text-sm font-medium text-muted-foreground">Diseños</h2>
+          <p className="text-xs text-muted-foreground">
+            Rotación y % vendido vs. producido son aproximados: se estima lo producido como stock actual + vendido histórico.
+          </p>
+        </div>
+
+        {productosKpi.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Sin ventas registradas este mes.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-border text-left text-muted-foreground">
+                <tr>
+                  <th className="py-2 pr-3 font-medium">Diseño</th>
+                  <th className="py-2 pr-3 font-medium">Línea</th>
+                  <th className="py-2 pr-3 font-medium">Vendido</th>
+                  <th className="py-2 pr-3 font-medium">Margen neto</th>
+                  <th className="py-2 pr-3 font-medium">Rotación</th>
+                  <th className="py-2 pr-3 font-medium">% vendido vs. producido</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productosKpi.map((p) => (
+                  <tr key={p.id_producto} className="border-b border-border/60 last:border-0">
+                    <td className="py-2 pr-3 text-foreground">{p.nombre}</td>
+                    <td className="py-2 pr-3 text-muted-foreground">{p.lineaNombre ?? "—"}</td>
+                    <td className="py-2 pr-3 text-foreground">{p.unidadesMes}</td>
+                    <td className="py-2 pr-3 text-foreground">{p.margenNetoPct.toFixed(1)}%</td>
+                    <td className="py-2 pr-3 text-foreground">{p.rotacionMes !== null ? p.rotacionMes.toFixed(2) : "—"}</td>
+                    <td className="py-2 pr-3 text-foreground">
+                      {p.pctVendidoVsProducido !== null ? `${p.pctVendidoVsProducido.toFixed(0)}%` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

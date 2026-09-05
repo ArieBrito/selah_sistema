@@ -54,6 +54,27 @@ export const compraFormSchema = z.object({
 
 export type CompraFormValues = z.infer<typeof compraFormSchema>;
 
+export const gastoFormSchema = z.object({
+  id: z.number().int().positive().optional(),
+  fecha: z.string().trim().min(1, "La fecha es obligatoria"),
+  id_tipo_gasto: z.number().int().positive("Elige un tipo de gasto"),
+  descripcion: z.string().trim().optional(),
+  monto: z.coerce.number().positive("Debe ser mayor a 0"),
+});
+
+export type GastoFormValues = z.infer<typeof gastoFormSchema>;
+
+export const registroProduccionFormSchema = z.object({
+  id: z.number().int().positive().optional(),
+  fecha: z.string().trim().min(1, "La fecha es obligatoria"),
+  id_empleado: z.number().int().positive("Elige un empleado"),
+  id_producto: z.string().min(1, "Elige un diseño"),
+  cantidad: z.coerce.number().int().positive("Debe ser mayor a 0"),
+  minutos: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
+});
+
+export type RegistroProduccionFormValues = z.infer<typeof registroProduccionFormSchema>;
+
 export const tiposVenta = ["Contado", "Crédito"] as const;
 export type TipoVenta = (typeof tiposVenta)[number];
 

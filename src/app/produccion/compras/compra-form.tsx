@@ -316,13 +316,6 @@ export function CompraForm({
                     <CommandInput placeholder="Buscar material..." />
                     <CommandList>
                       <CommandGroup>
-                        {disponibles.map((m) => (
-                          <CommandItem key={m.id_material} value={m.nombre} onSelect={() => agregarLinea(m)}>
-                            {m.nombre}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                      <CommandGroup>
                         <CommandItem
                           forceMount
                           value="crear-material-nuevo"
@@ -333,6 +326,13 @@ export function CompraForm({
                         >
                           <Plus className="size-3.5" /> Crear material nuevo
                         </CommandItem>
+                      </CommandGroup>
+                      <CommandGroup>
+                        {disponibles.map((m) => (
+                          <CommandItem key={m.id_material} value={m.nombre} onSelect={() => agregarLinea(m)}>
+                            {m.nombre}
+                          </CommandItem>
+                        ))}
                       </CommandGroup>
                     </CommandList>
                   </Command>
