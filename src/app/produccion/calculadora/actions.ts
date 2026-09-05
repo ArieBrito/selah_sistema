@@ -136,6 +136,7 @@ export async function guardarDiseno(input: DisenoInput) {
 
     revalidatePath("/produccion/calculadora");
     revalidatePath("/produccion/productos");
+    revalidatePath("/");
     return { ok: true as const, ids };
   }
 
@@ -154,6 +155,7 @@ export async function guardarDiseno(input: DisenoInput) {
 
   revalidatePath("/produccion/calculadora");
   revalidatePath("/produccion/productos");
+  revalidatePath("/");
   return { ok: true as const, ids: ids as string[] };
 }
 

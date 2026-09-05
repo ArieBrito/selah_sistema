@@ -26,6 +26,7 @@ export async function eliminarProducto(id_producto: string) {
 
   revalidatePath("/produccion/productos");
   revalidatePath("/produccion/calculadora");
+  revalidatePath("/");
   return { ok: true as const };
 }
 
@@ -34,5 +35,6 @@ export async function cambiarActivoProducto(id_producto: string, activo: boolean
   if (error) throw new Error(error.message);
   revalidatePath("/produccion/productos");
   revalidatePath("/produccion/calculadora");
+  revalidatePath("/");
   return { ok: true as const };
 }

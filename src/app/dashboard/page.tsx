@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { obtenerCostosFijos, obtenerKpisVentas } from "../data";
+import { obtenerCostosFijos, obtenerKpisVentas } from "@/app/ventas/data";
 
 const META_ARRANQUE = { min: 150, max: 200 };
 const META_FINAL = { min: 546, max: 682 };
@@ -87,7 +87,7 @@ export default async function DashboardVentasPage({
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
@@ -95,7 +95,7 @@ export default async function DashboardVentasPage({
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
           <Link
-            href={`/ventas/dashboard?mes=${formatoMes(mesAnterior)}`}
+            href={`/dashboard?mes=${formatoMes(mesAnterior)}`}
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Mes anterior"
           >
@@ -103,7 +103,7 @@ export default async function DashboardVentasPage({
           </Link>
           <span className="w-32 text-center text-sm font-medium text-foreground">{etiquetaMes}</span>
           <Link
-            href={`/ventas/dashboard?mes=${formatoMes(mesSiguiente)}`}
+            href={`/dashboard?mes=${formatoMes(mesSiguiente)}`}
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Mes siguiente"
           >

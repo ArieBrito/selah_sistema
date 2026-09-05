@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!, {
+  const supabase = createServerClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && enLogin) {
-    return NextResponse.redirect(new URL("/produccion/compras", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return response;

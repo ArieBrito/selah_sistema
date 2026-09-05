@@ -20,6 +20,7 @@ export async function crearCompra(values: CompraFormValues) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/produccion/compras");
+  revalidatePath("/");
   return { ok: true as const };
 }
 
@@ -40,6 +41,7 @@ export async function actualizarCompra(id_compra: number, values: CompraFormValu
   if (error) throw new Error(error.message);
 
   revalidatePath("/produccion/compras");
+  revalidatePath("/");
   return { ok: true as const };
 }
 
@@ -51,6 +53,7 @@ export async function eliminarCompra(id_compra: number) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/produccion/compras");
+  revalidatePath("/");
   return { ok: true as const };
 }
 

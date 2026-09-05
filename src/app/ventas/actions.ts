@@ -42,7 +42,8 @@ export async function crearVenta(values: VentaFormValues) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/ventas");
-  revalidatePath("/ventas/dashboard");
+  revalidatePath("/dashboard");
+  revalidatePath("/");
   return { ok: true as const };
 }
 
@@ -66,7 +67,8 @@ export async function actualizarVenta(id_venta: number, values: VentaFormValues)
   if (error) throw new Error(error.message);
 
   revalidatePath("/ventas");
-  revalidatePath("/ventas/dashboard");
+  revalidatePath("/dashboard");
+  revalidatePath("/");
   return { ok: true as const };
 }
 
@@ -78,7 +80,8 @@ export async function eliminarVenta(id_venta: number) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/ventas");
-  revalidatePath("/ventas/dashboard");
+  revalidatePath("/dashboard");
+  revalidatePath("/");
   return { ok: true as const };
 }
 

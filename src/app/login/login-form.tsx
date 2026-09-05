@@ -47,7 +47,7 @@ export function LoginForm() {
       toast.error(resultado.error);
       return;
     }
-    router.push("/produccion/compras");
+    router.push("/");
     router.refresh();
   }
 
