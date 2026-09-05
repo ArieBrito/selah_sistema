@@ -2,12 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function proxy(request: NextRequest) {
-  // Temporal: en local (npm run dev) se omite el login para poder probar la app.
-  // NODE_ENV es "production" en el build de Netlify, así que esto nunca aplica ahí.
-  if (process.env.NODE_ENV !== "production") {
-    return NextResponse.next({ request });
-  }
-
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
