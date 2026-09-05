@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NOMBRES_MES, formatoMes, parsearMes } from "@/lib/mes";
+import { requerirSesion } from "@/lib/auth";
 import { listarProduccionMes, obtenerContextoRegistro } from "./data";
 import { RegistroTable } from "./registro-table";
 
@@ -15,9 +16,25 @@ export default async function RegistroPulserasPage({
   const mesSiguiente = new Date(mesRef.getFullYear(), mesRef.getMonth() + 1, 1);
   const etiquetaMes = `${NOMBRES_MES[mesRef.getMonth()]} ${mesRef.getFullYear()}`;
 
+  // El administrador ve la producción de todo el equipo; el usuario solo la suya.
+  const sesion = await requerirSesion();
+  const soloEmpleado = sesion.rol === "admin" ? null : sesion.idEmpleado;
+
+  if (sesion.rol !== "admin" && soloEmpleado === null) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <h1 className="text-lg font-semibold text-foreground">Tu cuenta todavía no está ligada a un empleado</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Pídele al administrador que asocie tu cuenta ({sesion.email}) con tu nombre de empleado para poder registrar tus
+          pulseras.
+        </p>
+      </div>
+    );
+  }
+
   const [contexto, { registros, resumenPorEmpleado }] = await Promise.all([
-    obtenerContextoRegistro(),
-    listarProduccionMes(mesRef),
+    obtenerContextoRegistro(soloEmpleado),
+    listarProduccionMes(mesRef, soloEmpleado),
   ]);
 
   return (

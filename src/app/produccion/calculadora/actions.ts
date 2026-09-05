@@ -5,6 +5,7 @@ import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { buscarClasificacion, calcularCostoCargado, calcularCostoMateriales, calcularPrecioFinal } from "@/lib/pricing";
 import { obtenerContextoPrecios } from "./data";
+import { requerirAdmin } from "@/lib/auth";
 
 const disenoSchema = z
   .object({
@@ -39,6 +40,8 @@ const disenoSchema = z
 export type DisenoInput = z.infer<typeof disenoSchema>;
 
 export async function guardarDiseno(input: DisenoInput) {
+  await requerirAdmin();
+
   const data = disenoSchema.parse(input);
 
   const [contexto, { data: materialesUsados }, { data: productoExistente }] = await Promise.all([
@@ -160,6 +163,8 @@ export async function guardarDiseno(input: DisenoInput) {
 }
 
 export async function crearCategoria(nombre: string) {
+  await requerirAdmin();
+
   const nombreLimpio = nombre.trim();
   if (!nombreLimpio) throw new Error("El nombre de la categoría es obligatorio.");
 

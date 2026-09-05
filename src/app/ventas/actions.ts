@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { clienteFormSchema, ventaFormSchema, type ClienteFormValues, type VentaFormValues } from "@/lib/validations";
 import { obtenerCostosProductos } from "./data";
+import { requerirAdmin } from "@/lib/auth";
 
 async function construirDetalle(lineas: VentaFormValues["lineas"]) {
   const idsProducto = lineas.filter((l): l is typeof l & { id_producto: string } => l.id_producto !== null).map((l) => l.id_producto);
@@ -24,6 +25,8 @@ function calcularTotales(lineas: VentaFormValues["lineas"], descuentoPct: number
 }
 
 export async function crearVenta(values: VentaFormValues) {
+  await requerirAdmin();
+
   const data = ventaFormSchema.parse(values);
   const { descuento, total } = calcularTotales(data.lineas, data.descuento_pct);
   const detalle = await construirDetalle(data.lineas);
@@ -48,10 +51,13 @@ export async function crearVenta(values: VentaFormValues) {
 }
 
 export async function actualizarVenta(id_venta: number, values: VentaFormValues) {
+  await requerirAdmin();
+
   const data = ventaFormSchema.parse(values);
   const { descuento, total } = calcularTotales(data.lineas, data.descuento_pct);
   const detalle = await construirDetalle(data.lineas);
 
+  // El dinero cobrado no se toca aquí: vive en `cobros` y se administra desde Administración.
   const { error } = await supabase.rpc("actualizar_venta", {
     p_id_venta: id_venta,
     p_fecha_hora: data.fecha_hora,
@@ -61,7 +67,6 @@ export async function actualizarVenta(id_venta: number, values: VentaFormValues)
     p_id_metodo: data.id_metodo,
     p_descuento: descuento,
     p_total: total,
-    p_pago_recibido: data.pago_recibido,
     p_detalle: detalle,
   });
   if (error) throw new Error(error.message);
@@ -73,6 +78,8 @@ export async function actualizarVenta(id_venta: number, values: VentaFormValues)
 }
 
 export async function eliminarVenta(id_venta: number) {
+  await requerirAdmin();
+
   const { error: detalleError } = await supabase.from("venta_detalle").delete().eq("id_venta", id_venta);
   if (detalleError) throw new Error(detalleError.message);
 
@@ -86,6 +93,8 @@ export async function eliminarVenta(id_venta: number) {
 }
 
 export async function crearCliente(values: ClienteFormValues) {
+  await requerirAdmin();
+
   const data = clienteFormSchema.parse(values);
   const { data: cliente, error } = await supabase
     .from("clientes")

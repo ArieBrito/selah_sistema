@@ -6,6 +6,8 @@ import {
   obtenerKpisProductosMes,
   obtenerKpisVentas,
 } from "@/app/ventas/data";
+import { calcularReparto, obtenerCobradoMes } from "@/app/ventas/finanzas";
+import { requerirAdminEnPagina } from "@/lib/auth";
 import { calcularMargenReal } from "@/lib/pricing";
 import { NOMBRES_MES, formatoMes, parsearMes } from "@/lib/mes";
 
@@ -39,15 +41,18 @@ export default async function DashboardVentasPage({
 }: {
   searchParams: Promise<{ mes?: string }>;
 }) {
+  await requerirAdminEnPagina();
+
   const { mes } = await searchParams;
   const mesRef = parsearMes(mes);
 
-  const [{ unidadesMes, semanas, porCanal, numVentasMes, ingresoMes, costoMesNeto }, costosFijos, recurrencia, productosKpi] =
+  const [{ unidadesMes, semanas, porCanal, numVentasMes, ingresoMes, costoMesNeto }, costosFijos, recurrencia, productosKpi, cobrado] =
     await Promise.all([
       obtenerKpisVentas(mesRef),
       obtenerCostosFijos(),
       obtenerClientesNuevosVsRecurrentesMes(mesRef),
       obtenerKpisProductosMes(mesRef),
+      obtenerCobradoMes(mesRef),
     ]);
 
   const mesAnterior = new Date(mesRef.getFullYear(), mesRef.getMonth() - 1, 1);
@@ -71,22 +76,9 @@ export default async function DashboardVentasPage({
   const margenNetoPct = calcularMargenReal(ingresoMes, costoMesNeto) * 100;
   const ticketPromedio = numVentasMes > 0 ? ingresoMes / numVentasMes : 0;
 
-  const manoObraTotal = costosFijos.costo_mano_obra * unidadesMes;
-  const empaqueTotal = costosFijos.costo_empaque * unidadesMes;
-  const gabyFijoTotal = costosFijos.costo_pago_hermana * unidadesMes;
-  const costoFijoTotal = manoObraTotal + empaqueTotal + gabyFijoTotal;
-  const restante = Math.max(0, totalCanales - costoFijoTotal);
-  const arieTotal = restante * 0.15;
-  const reinversionTotal = (restante - arieTotal) * 0.5;
-  const gabyTotal = gabyFijoTotal + (restante - arieTotal) * 0.5;
-  const escalaReparto = Math.max(totalCanales, costoFijoTotal, 1);
-  const reparto = [
-    { nombre: "Mano de obra", total: manoObraTotal },
-    { nombre: "Empaque", total: empaqueTotal },
-    { nombre: "Gaby", total: gabyTotal },
-    { nombre: "Arie", total: arieTotal },
-    { nombre: "Reinversión", total: reinversionTotal },
-  ];
+  const { montos } = calcularReparto(cobrado.total, unidadesMes, costosFijos);
+  const reparto = Object.entries(montos).map(([nombre, total]) => ({ nombre, total }));
+  const escalaReparto = Math.max(cobrado.total, ...reparto.map((r) => r.total), 1);
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-6">
@@ -236,9 +228,9 @@ export default async function DashboardVentasPage({
         <div>
           <h2 className="text-sm font-medium text-muted-foreground">Reparto del dinero</h2>
           <p className="text-xs text-muted-foreground">
-            Por pieza vendida: ${costosFijos.costo_mano_obra.toFixed(2)} mano de obra + ${costosFijos.costo_pago_hermana.toFixed(2)} Gaby
-            + ${costosFijos.costo_empaque.toFixed(2)} empaque (${costoFijoUnitario.toFixed(2)} fijo). De lo que sobra: 15% Arie, el
-            resto se reparte mitad reinversión y mitad Gaby.
+            Se reparte el dinero cobrado en el mes. Por pieza vendida: ${costosFijos.costo_mano_obra.toFixed(2)} mano de obra + $
+            {costosFijos.costo_pago_hermana.toFixed(2)} Gaby + ${costosFijos.costo_empaque.toFixed(2)} empaque ($
+            {costoFijoUnitario.toFixed(2)} fijo). De lo que sobra: 15% Arie, el resto se reparte mitad reinversión y mitad Gaby.
           </p>
         </div>
 
@@ -261,8 +253,8 @@ export default async function DashboardVentasPage({
               </div>
             ))}
             <div className="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Ingresos del mes</span>
-              <span className="font-semibold text-foreground">${totalCanales.toFixed(2)}</span>
+              <span className="text-muted-foreground">Dinero cobrado este mes</span>
+              <span className="font-semibold text-foreground">${cobrado.total.toFixed(2)}</span>
             </div>
           </div>
         )}

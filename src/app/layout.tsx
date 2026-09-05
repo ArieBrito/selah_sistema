@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TopBar } from "@/components/top-bar";
+import { esAdmin } from "@/lib/auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,18 +20,20 @@ export const metadata: Metadata = {
   description: "Administración de inventario, costeo y ventas para Selah",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const admin = await esAdmin();
+
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <TopBar />
+        <TopBar esAdmin={admin} />
         <main className="flex-1">{children}</main>
         <Toaster position="top-center" richColors />
       </body>

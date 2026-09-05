@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { materialFormSchema, proveedorFormSchema, type MaterialFormValues } from "@/lib/validations";
+import { requerirAdmin } from "@/lib/auth";
 
 function calcularCostoUnitario(data: MaterialFormValues): number | null {
   if (!data.piezas_por_tira) return null;
@@ -10,6 +11,8 @@ function calcularCostoUnitario(data: MaterialFormValues): number | null {
 }
 
 export async function crearMaterial(values: MaterialFormValues) {
+  await requerirAdmin();
+
   const data = materialFormSchema.parse(values);
   const costo_unitario = calcularCostoUnitario(data);
 
@@ -41,6 +44,8 @@ export async function crearMaterial(values: MaterialFormValues) {
 }
 
 export async function actualizarMaterial(id_material: string, values: MaterialFormValues) {
+  await requerirAdmin();
+
   const data = materialFormSchema.parse(values);
   const costo_unitario = calcularCostoUnitario(data);
 
@@ -69,6 +74,8 @@ export async function actualizarMaterial(id_material: string, values: MaterialFo
 }
 
 export async function eliminarMaterial(id_material: string) {
+  await requerirAdmin();
+
   const { error } = await supabase.from("materiales").delete().eq("id_material", id_material);
 
   if (error) {
@@ -96,6 +103,8 @@ export async function eliminarMaterial(id_material: string) {
 }
 
 export async function crearProveedor(nombre: string) {
+  await requerirAdmin();
+
   const data = proveedorFormSchema.parse({ nombre });
   const { data: proveedor, error } = await supabase.from("proveedores").insert(data).select().single();
   if (error) throw new Error(error.message);

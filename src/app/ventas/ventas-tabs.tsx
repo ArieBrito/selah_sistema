@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/ventas", label: "Registrar venta" },
-  { href: "/ventas/seguimiento", label: "Seguimiento" },
+  { href: "/ventas/seguimiento", label: "Administración" },
 ];
 
 export function VentasTabs() {

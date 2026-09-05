@@ -8,16 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-const ITEMS = [
+const ITEMS_ADMIN = [
   { href: "/produccion/compras", label: "Panel de producción" },
   { href: "/ventas", label: "Panel de ventas" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/registro-pulseras", label: "Registro de pulseras" },
 ];
 
-export function AppSidebar() {
+const ITEMS_USUARIO = [{ href: "/registro-pulseras", label: "Registro de pulseras" }];
+
+export function AppSidebar({ esAdmin }: { esAdmin: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const items = esAdmin ? ITEMS_ADMIN : ITEMS_USUARIO;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -26,7 +29,7 @@ export function AppSidebar() {
       </SheetTrigger>
       <SheetContent>
         <nav className="mt-2 flex flex-col gap-2">
-          {ITEMS.map((item) => {
+          {items.map((item) => {
             const active = pathname?.startsWith(item.href) ?? false;
             return (
               <Link

@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { compraFormSchema, empleadoFormSchema, type CompraFormValues } from "@/lib/validations";
+import { requerirAdmin } from "@/lib/auth";
 
 export async function crearCompra(values: CompraFormValues) {
+  await requerirAdmin();
+
   const data = compraFormSchema.parse(values);
   const total = data.lineas.reduce((suma, l) => suma + l.cantidad * l.costo_unit, 0);
 
@@ -25,6 +28,8 @@ export async function crearCompra(values: CompraFormValues) {
 }
 
 export async function actualizarCompra(id_compra: number, values: CompraFormValues) {
+  await requerirAdmin();
+
   const data = compraFormSchema.parse(values);
   const total = data.lineas.reduce((suma, l) => suma + l.cantidad * l.costo_unit, 0);
 
@@ -46,6 +51,8 @@ export async function actualizarCompra(id_compra: number, values: CompraFormValu
 }
 
 export async function eliminarCompra(id_compra: number) {
+  await requerirAdmin();
+
   const { error: detalleError } = await supabase.from("compra_detalle").delete().eq("id_compra", id_compra);
   if (detalleError) throw new Error(detalleError.message);
 
@@ -58,6 +65,8 @@ export async function eliminarCompra(id_compra: number) {
 }
 
 export async function crearEmpleado(nombre: string) {
+  await requerirAdmin();
+
   const data = empleadoFormSchema.parse({ nombre });
   const { data: empleado, error } = await supabase.from("empleados").insert(data).select().single();
   if (error) throw new Error(error.message);

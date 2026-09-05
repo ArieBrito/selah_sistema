@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/auth-actions";
 
-export function TopBar() {
+export function TopBar({ esAdmin }: { esAdmin: boolean }) {
   const pathname = usePathname();
 
   if (pathname?.startsWith("/login")) return null;
@@ -16,9 +16,9 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-3 sm:px-6">
-        <AppSidebar />
+        <AppSidebar esAdmin={esAdmin} />
 
-        <Link href="/" className="flex shrink-0 items-center gap-2">
+        <Link href={esAdmin ? "/" : "/registro-pulseras"} className="flex shrink-0 items-center gap-2">
           <Image src="/logotipo.png" alt="Selah" width={96} height={28} priority className="h-6 w-auto sm:h-7" />
         </Link>
 

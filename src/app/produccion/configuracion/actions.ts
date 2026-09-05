@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
+import { requerirAdmin } from "@/lib/auth";
 
 const costosFijosSchema = z.object({
   costo_mano_obra: z.coerce.number().min(0),
@@ -16,6 +17,8 @@ const tipoHiloSchema = z.object({
 });
 
 export async function actualizarCostosFijos(values: z.infer<typeof costosFijosSchema>) {
+  await requerirAdmin();
+
   const data = costosFijosSchema.parse(values);
   const { error } = await supabase.from("configuracion").upsert({ id: 1, ...data });
   if (error) throw new Error(error.message);
@@ -25,6 +28,8 @@ export async function actualizarCostosFijos(values: z.infer<typeof costosFijosSc
 }
 
 export async function crearTipoHilo(values: z.infer<typeof tipoHiloSchema>) {
+  await requerirAdmin();
+
   const data = tipoHiloSchema.parse(values);
   const { error } = await supabase.from("tipos_hilo").insert(data);
   if (error) throw new Error(error.message);
@@ -34,6 +39,8 @@ export async function crearTipoHilo(values: z.infer<typeof tipoHiloSchema>) {
 }
 
 export async function actualizarTipoHilo(id: number, values: z.infer<typeof tipoHiloSchema>) {
+  await requerirAdmin();
+
   const data = tipoHiloSchema.parse(values);
   const { error } = await supabase.from("tipos_hilo").update(data).eq("id_tipo_hilo", id);
   if (error) throw new Error(error.message);

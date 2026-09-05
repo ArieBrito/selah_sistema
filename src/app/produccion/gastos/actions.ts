@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { gastoFormSchema, type GastoFormValues } from "@/lib/validations";
+import { requerirAdmin } from "@/lib/auth";
 
 export async function crearGasto(values: GastoFormValues) {
+  await requerirAdmin();
+
   const data = gastoFormSchema.parse(values);
 
   const { error } = await supabase.from("gastos").insert({
@@ -21,6 +24,8 @@ export async function crearGasto(values: GastoFormValues) {
 }
 
 export async function actualizarGasto(id_gasto: number, values: GastoFormValues) {
+  await requerirAdmin();
+
   const data = gastoFormSchema.parse(values);
 
   const { error } = await supabase
@@ -40,6 +45,8 @@ export async function actualizarGasto(id_gasto: number, values: GastoFormValues)
 }
 
 export async function eliminarGasto(id_gasto: number) {
+  await requerirAdmin();
+
   const { error } = await supabase.from("gastos").delete().eq("id_gasto", id_gasto);
   if (error) throw new Error(error.message);
 

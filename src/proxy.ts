@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+const RUTA_USUARIO = "/registro-pulseras";
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -21,14 +23,23 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const enLogin = request.nextUrl.pathname.startsWith("/login");
+  const { pathname } = request.nextUrl;
+  const enLogin = pathname.startsWith("/login");
 
-  if (!user && !enLogin) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!user) {
+    return enLogin ? response : NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && enLogin) {
-    return NextResponse.redirect(new URL("/", request.url));
+  const { data: perfil } = await supabase.from("perfiles").select("rol").eq("id", user.id).maybeSingle();
+  const esAdmin = perfil?.rol === "admin";
+
+  if (enLogin) {
+    return NextResponse.redirect(new URL(esAdmin ? "/" : RUTA_USUARIO, request.url));
+  }
+
+  // El usuario sin permisos de administrador solo existe dentro del registro de pulseras.
+  if (!esAdmin && !pathname.startsWith(RUTA_USUARIO)) {
+    return NextResponse.redirect(new URL(RUTA_USUARIO, request.url));
   }
 
   return response;

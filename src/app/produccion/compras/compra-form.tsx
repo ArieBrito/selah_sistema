@@ -313,7 +313,7 @@ export function CompraForm({
                 />
                 <PopoverContent className="w-72 p-0" align="end">
                   <Command>
-                    <CommandInput placeholder="Buscar material..." />
+                    <CommandInput placeholder="Buscar por ID o nombre..." />
                     <CommandList>
                       <CommandGroup>
                         <CommandItem
@@ -329,8 +329,8 @@ export function CompraForm({
                       </CommandGroup>
                       <CommandGroup>
                         {disponibles.map((m) => (
-                          <CommandItem key={m.id_material} value={m.nombre} onSelect={() => agregarLinea(m)}>
-                            {m.nombre}
+                          <CommandItem key={m.id_material} value={`${m.id_material} ${m.nombre}`} onSelect={() => agregarLinea(m)}>
+                            <span className="text-xs text-muted-foreground">{m.id_material}</span> {m.nombre}
                           </CommandItem>
                         ))}
                       </CommandGroup>

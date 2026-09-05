@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Plus, X } from "lucide-react";
@@ -524,15 +525,28 @@ export function VentaForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="pago_recibido">Pago recibido</Label>
-              <Input
-                id="pago_recibido"
-                type="number"
-                min="0"
-                step="any"
-                value={pagoRecibido}
-                onChange={(e) => setCampos((prev) => ({ ...prev, pagoRecibido: Number(e.target.value) }))}
-              />
+              <Label htmlFor="pago_recibido">{esEdicion ? "Cobrado hasta ahora" : "Pago recibido"}</Label>
+              {esEdicion ? (
+                <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+                  <p className="text-sm font-medium text-foreground">${pagoRecibido.toFixed(2)}</p>
+                  <Link
+                    href="/ventas/seguimiento"
+                    className="text-xs text-primary underline-offset-2 hover:underline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Registrar un cobro en Administración
+                  </Link>
+                </div>
+              ) : (
+                <Input
+                  id="pago_recibido"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={pagoRecibido}
+                  onChange={(e) => setCampos((prev) => ({ ...prev, pagoRecibido: Number(e.target.value) }))}
+                />
+              )}
             </div>
           </div>
 
@@ -551,12 +565,17 @@ export function VentaForm({
               <span className="text-sm text-muted-foreground">Total</span>
               <span className="text-lg font-semibold text-foreground">${total.toFixed(2)}</span>
             </div>
-            {pagoRecibido > 0 && (
+            {!esEdicion && (cambio < 0 ? (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Queda por cobrar</span>
+                <span className="font-medium text-destructive">${Math.abs(cambio).toFixed(2)}</span>
+              </div>
+            ) : pagoRecibido > 0 ? (
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Cambio</span>
-                <span className={cambio < 0 ? "text-destructive" : ""}>${cambio.toFixed(2)}</span>
+                <span>${cambio.toFixed(2)}</span>
               </div>
-            )}
+            ) : null)}
           </div>
         </div>
 

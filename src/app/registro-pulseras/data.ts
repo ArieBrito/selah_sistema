@@ -1,9 +1,12 @@
 import { endOfMonth, startOfMonth } from "date-fns";
 import { supabase } from "@/lib/supabase";
 
-export async function obtenerContextoRegistro() {
+/** `soloEmpleado` limita la lista de empleados a uno: el usuario solo se captura a sí mismo. */
+export async function obtenerContextoRegistro(soloEmpleado?: number | null) {
+  const consultaEmpleados = supabase.from("empleados").select("id_empleado, nombre").eq("activo", true);
+
   const [{ data: empleados }, { data: productos }, { data: configuracion }] = await Promise.all([
-    supabase.from("empleados").select("id_empleado, nombre").eq("activo", true).order("nombre"),
+    (soloEmpleado != null ? consultaEmpleados.eq("id_empleado", soloEmpleado) : consultaEmpleados).order("nombre"),
     supabase
       .from("productos")
       .select("id_producto, nombre, categoria:categorias(nombre)")
@@ -34,17 +37,20 @@ type RegistroQueryRow = {
   costo_mo_lote: string;
 };
 
-export async function listarProduccionMes(mesRef: Date = new Date()) {
+/** `soloEmpleado` deja fuera la producción de los demás: el usuario solo ve la suya. */
+export async function listarProduccionMes(mesRef: Date = new Date(), soloEmpleado?: number | null) {
   const inicioStr = startOfMonth(mesRef).toISOString().slice(0, 10);
   const finStr = endOfMonth(mesRef).toISOString().slice(0, 10);
 
-  const { data } = await supabase
+  const consulta = supabase
     .from("produccion")
     .select(
       "id_produccion, fecha, id_empleado, empleado:empleados(nombre), id_producto, producto:productos(nombre), cantidad, minutos, costo_mo_lote"
     )
     .gte("fecha", inicioStr)
-    .lte("fecha", finStr)
+    .lte("fecha", finStr);
+
+  const { data } = await (soloEmpleado != null ? consulta.eq("id_empleado", soloEmpleado) : consulta)
     .order("fecha", { ascending: false })
     .returns<RegistroQueryRow[]>();
 

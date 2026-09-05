@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { requerirAdminEnPagina } from "@/lib/auth";
 import { obtenerResumenInicio } from "./data";
 
 function formatoMoneda(valor: number) {
@@ -6,6 +7,8 @@ function formatoMoneda(valor: number) {
 }
 
 export default async function Home() {
+  await requerirAdminEnPagina();
+
   const { ventasMesTotal, stockTotal, dineroEnCaja } = await obtenerResumenInicio();
 
   const tarjetas = [

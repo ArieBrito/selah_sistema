@@ -78,6 +78,30 @@ export type RegistroProduccionFormValues = z.infer<typeof registroProduccionForm
 export const tiposVenta = ["Contado", "Crédito"] as const;
 export type TipoVenta = (typeof tiposVenta)[number];
 
+export const conceptosReparto = ["Mano de obra", "Empaque", "Gaby", "Arie", "Reinversión"] as const;
+export type ConceptoReparto = (typeof conceptosReparto)[number];
+
+export const cobroFormSchema = z.object({
+  id: z.number().int().positive().optional(),
+  id_venta: z.number().int().positive("Elige una venta"),
+  fecha: z.string().trim().min(1, "La fecha es obligatoria"),
+  monto: z.coerce.number().positive("Debe ser mayor a 0"),
+  id_metodo: z.number().int().positive().nullable().optional(),
+  nota: z.string().trim().optional(),
+});
+
+export type CobroFormValues = z.infer<typeof cobroFormSchema>;
+
+export const entregaFormSchema = z.object({
+  id: z.number().int().positive().optional(),
+  fecha: z.string().trim().min(1, "La fecha es obligatoria"),
+  concepto: z.enum(conceptosReparto),
+  monto: z.coerce.number().positive("Debe ser mayor a 0"),
+  nota: z.string().trim().optional(),
+});
+
+export type EntregaFormValues = z.infer<typeof entregaFormSchema>;
+
 export const clienteFormSchema = z.object({
   nombre: z.string().trim().min(1, "El nombre es obligatorio"),
   apellido: z.string().trim().optional(),

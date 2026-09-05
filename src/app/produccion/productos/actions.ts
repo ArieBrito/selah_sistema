@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
+import { requerirAdmin } from "@/lib/auth";
 
 export async function eliminarProducto(id_producto: string) {
+  await requerirAdmin();
+
   const { error } = await supabase.from("productos").delete().eq("id_producto", id_producto);
 
   if (error) {
@@ -31,6 +34,8 @@ export async function eliminarProducto(id_producto: string) {
 }
 
 export async function cambiarActivoProducto(id_producto: string, activo: boolean) {
+  await requerirAdmin();
+
   const { error } = await supabase.from("productos").update({ activo }).eq("id_producto", id_producto);
   if (error) throw new Error(error.message);
   revalidatePath("/produccion/productos");
