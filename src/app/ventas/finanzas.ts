@@ -26,25 +26,23 @@ function rangoMes(mesRef: Date) {
 }
 
 /**
- * Reparto del dinero de un mes. Sobre la base disponible se cubren primero los
- * costos por pieza (mano de obra, empaque y el pago fijo a Gaby); de lo que
- * sobra, 15% es de Arie y el resto se divide en partes iguales entre
- * reinversión y Gaby.
- *
- * La base es el dinero COBRADO, no el facturado: no se puede repartir dinero
- * que todavía no entra (ventas a crédito y consignación se cobran en partes).
+ * Reparto del dinero de un mes, amarrado al P&L. Los costos por pieza (mano de
+ * obra, empaque y el pago fijo a Gaby) ya están descontados en el P&L, así que
+ * le tocan tal cual. Lo que se reparte es la UTILIDAD NETA: 15% es de Arie y el
+ * resto se divide en partes iguales entre reinversión y Gaby. Si hay pérdida,
+ * no hay utilidad que repartir.
  */
-export function calcularReparto(base: number, unidades: number, costosFijos: CostosFijos) {
+export function calcularReparto(utilidadNeta: number, unidades: number, costosFijos: CostosFijos) {
   const manoObra = costosFijos.costo_mano_obra * unidades;
   const empaque = costosFijos.costo_empaque * unidades;
   const gabyFijo = costosFijos.costo_pago_hermana * unidades;
 
-  const restante = Math.max(0, base - (manoObra + empaque + gabyFijo));
-  const arie = restante * 0.15;
-  const mitadSobrante = (restante - arie) * 0.5;
+  const utilidadRepartible = Math.max(0, utilidadNeta);
+  const arie = utilidadRepartible * 0.15;
+  const mitadSobrante = (utilidadRepartible - arie) * 0.5;
 
   return {
-    base,
+    base: utilidadNeta,
     unidades,
     montos: {
       "Mano de obra": manoObra,
@@ -232,8 +230,11 @@ export async function listarEntregas(mesRef?: Date): Promise<EntregaRow[]> {
 
 /**
  * Reparto del mes contra lo que ya se entregó, para saber cuánto se le debe a
- * cada quien. La base es el dinero cobrado en el mes y las unidades son las
- * piezas vendidas en ese mismo mes.
+ * cada quien. La base es la utilidad neta del P&L del mes.
+ *
+ * También cuadra la caja del mes: lo cobrado menos compras, gastos y lo que le
+ * toca a cada quien (la reinversión se queda en el negocio). Lo que resta es el
+ * superávit (o déficit si es negativo) después de pagar todo.
  */
 export async function obtenerRepartoMes(mesRef: Date = new Date()) {
   const [cobrado, pnl, costosFijos, entregas] = await Promise.all([
@@ -243,7 +244,7 @@ export async function obtenerRepartoMes(mesRef: Date = new Date()) {
     listarEntregas(mesRef),
   ]);
 
-  const { montos } = calcularReparto(cobrado.total, pnl.unidades, costosFijos);
+  const { montos } = calcularReparto(pnl.utilidadNeta, pnl.unidades, costosFijos);
 
   const entregadoPorConcepto = new Map<string, number>();
   for (const e of entregas) {
@@ -256,13 +257,25 @@ export async function obtenerRepartoMes(mesRef: Date = new Date()) {
     return { concepto, devengado, entregado, saldo: devengado - entregado };
   });
 
+  const pagosPersonas = filas.filter((f) => f.concepto !== "Reinversión").reduce((s, f) => s + f.devengado, 0);
+  const quedaEnCaja = cobrado.total - pnl.costoMateriales - pnl.gastosTotal - pagosPersonas;
+
   return {
-    base: cobrado.total,
+    base: pnl.utilidadNeta,
     unidades: pnl.unidades,
     filas,
     totalDevengado: filas.reduce((s, f) => s + f.devengado, 0),
     totalEntregado: filas.reduce((s, f) => s + f.entregado, 0),
     entregas,
+    cuadreCaja: {
+      cobrado: cobrado.total,
+      compras: pnl.costoMateriales,
+      gastos: pnl.gastosTotal,
+      pagosPersonas,
+      quedaEnCaja,
+      reinversion: montos.Reinversión,
+      resultado: quedaEnCaja - montos.Reinversión,
+    },
   };
 }
 

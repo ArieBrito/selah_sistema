@@ -163,9 +163,9 @@ export function RepartoPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Se reparte el dinero cobrado en el mes (${base.toFixed(2)}). Primero se cubren los costos por pieza de las {unidades}{" "}
-        pieza{unidades === 1 ? "" : "s"} vendidas; de lo que sobra, 15% es de Arie y el resto se divide mitad reinversión y mitad
-        Gaby.
+        Mano de obra, empaque y el pago fijo a Gaby son los costos por pieza de las {unidades} pieza{unidades === 1 ? "" : "s"}{" "}
+        vendidas, los mismos del P&amp;L. Lo que se reparte es la utilidad neta (${base.toFixed(2)}): 15% es de Arie y el resto se
+        divide mitad reinversión y mitad Gaby.{base < 0 && " Este mes hay pérdida, así que no hay utilidad que repartir."}
       </p>
 
       <div className="flex items-center justify-between">
