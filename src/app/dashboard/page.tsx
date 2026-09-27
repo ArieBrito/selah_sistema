@@ -6,7 +6,7 @@ import {
   obtenerKpisProductosMes,
   obtenerKpisVentas,
 } from "@/app/ventas/data";
-import { calcularReparto, obtenerCobradoMes } from "@/app/ventas/finanzas";
+import { calcularReparto, obtenerPnLMes } from "@/app/ventas/finanzas";
 import { requerirAdminEnPagina } from "@/lib/auth";
 import { calcularMargenReal } from "@/lib/pricing";
 import { NOMBRES_MES, formatoMes, parsearMes } from "@/lib/mes";
@@ -46,13 +46,13 @@ export default async function DashboardVentasPage({
   const { mes } = await searchParams;
   const mesRef = parsearMes(mes);
 
-  const [{ unidadesMes, semanas, porCanal, numVentasMes, ingresoMes, costoMesNeto }, costosFijos, recurrencia, productosKpi, cobrado] =
+  const [{ unidadesMes, semanas, porCanal, numVentasMes, ingresoMes, costoMesNeto }, costosFijos, recurrencia, productosKpi, pnl] =
     await Promise.all([
       obtenerKpisVentas(mesRef),
       obtenerCostosFijos(),
       obtenerClientesNuevosVsRecurrentesMes(mesRef),
       obtenerKpisProductosMes(mesRef),
-      obtenerCobradoMes(mesRef),
+      obtenerPnLMes(mesRef),
     ]);
 
   const mesAnterior = new Date(mesRef.getFullYear(), mesRef.getMonth() - 1, 1);
@@ -64,8 +64,8 @@ export default async function DashboardVentasPage({
   const maxSemana = Math.max(1, ...semanas.map((s) => s.unidades));
 
   // Reparto del dinero: por cada pieza vendida se separan primero los costos fijos
-  // (mano de obra, empaque, pago a Gaby); de lo que queda, 15% es para Arie y el
-  // resto se divide en partes iguales entre reinversión y Gaby.
+  // (mano de obra, empaque, pago a Gaby); la utilidad neta del P&L se reparte 15%
+  // para Arie y el resto en partes iguales entre reinversión y Gaby.
   const costoFijoUnitario = costosFijos.costo_mano_obra + costosFijos.costo_empaque + costosFijos.costo_pago_hermana;
 
   // Margen bruto: no se guarda el costo de materiales por separado del costo cargado
@@ -76,9 +76,9 @@ export default async function DashboardVentasPage({
   const margenNetoPct = calcularMargenReal(ingresoMes, costoMesNeto) * 100;
   const ticketPromedio = numVentasMes > 0 ? ingresoMes / numVentasMes : 0;
 
-  const { montos } = calcularReparto(cobrado.total, unidadesMes, costosFijos);
+  const { montos } = calcularReparto(pnl.utilidadNeta, pnl.unidades, costosFijos);
   const reparto = Object.entries(montos).map(([nombre, total]) => ({ nombre, total }));
-  const escalaReparto = Math.max(cobrado.total, ...reparto.map((r) => r.total), 1);
+  const escalaReparto = Math.max(...reparto.map((r) => r.total), 1);
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-6">
@@ -228,9 +228,10 @@ export default async function DashboardVentasPage({
         <div>
           <h2 className="text-sm font-medium text-muted-foreground">Reparto del dinero</h2>
           <p className="text-xs text-muted-foreground">
-            Se reparte el dinero cobrado en el mes. Por pieza vendida: ${costosFijos.costo_mano_obra.toFixed(2)} mano de obra + $
+            Por pieza vendida: ${costosFijos.costo_mano_obra.toFixed(2)} mano de obra + $
             {costosFijos.costo_pago_hermana.toFixed(2)} Gaby + ${costosFijos.costo_empaque.toFixed(2)} empaque ($
-            {costoFijoUnitario.toFixed(2)} fijo). De lo que sobra: 15% Arie, el resto se reparte mitad reinversión y mitad Gaby.
+            {costoFijoUnitario.toFixed(2)} fijo). La utilidad neta del P&amp;L se reparte: 15% Arie, el resto mitad reinversión y mitad
+            Gaby.
           </p>
         </div>
 
@@ -253,8 +254,8 @@ export default async function DashboardVentasPage({
               </div>
             ))}
             <div className="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Dinero cobrado este mes</span>
-              <span className="font-semibold text-foreground">${cobrado.total.toFixed(2)}</span>
+              <span className="text-muted-foreground">Utilidad neta del mes</span>
+              <span className="font-semibold text-foreground">${pnl.utilidadNeta.toFixed(2)}</span>
             </div>
           </div>
         )}

@@ -89,6 +89,17 @@ export default async function AdministracionPage({ searchParams }: { searchParam
     { concepto: "Utilidad neta", monto: pnlMes.utilidadNeta },
   ];
 
+  const cuadre = reparto.cuadreCaja;
+  const superavit = cuadre.resultado >= -0.005;
+  const filasCuadre = [
+    { concepto: "Cobrado en el mes", monto: cuadre.cobrado, total: false },
+    { concepto: "Compras de materiales", monto: -cuadre.compras, total: false },
+    { concepto: "Gastos operativos", monto: -cuadre.gastos, total: false },
+    { concepto: "Lo que le toca a cada quien (sin reinversión)", monto: -cuadre.pagosPersonas, total: false },
+    { concepto: "Queda en caja", monto: cuadre.quedaEnCaja, total: true },
+    { concepto: "Reinversión apartada", monto: -cuadre.reinversion, total: false },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -172,24 +183,6 @@ export default async function AdministracionPage({ searchParams }: { searchParam
         )}
       </section>
 
-      {/* 2 y 3 — Reparto y entregas */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Reparto del dinero — {etiquetaMes}</h2>
-        <RepartoPanel filas={reparto.filas} entregas={reparto.entregas} base={reparto.base} unidades={reparto.unidades} />
-      </section>
-
-      {/* 6 — Cuentas por cobrar */}
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">Cuentas por cobrar</h2>
-          <p className="text-xs text-muted-foreground">
-            Ventas a crédito y consignaciones que se cobran en partes. Cada abono que registres entra al dinero recibido del mes
-            en que lo cobraste.
-          </p>
-        </div>
-        <CobrosPanel ventas={cuentasPorCobrar} metodos={contexto.metodos} />
-      </section>
-
       {/* 5 — P&L */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -245,6 +238,58 @@ export default async function AdministracionPage({ searchParams }: { searchParam
             <p className="mt-1 text-[10px] text-muted-foreground/70">saldo en caja + 2 × utilidad promedio</p>
           </div>
         </div>
+      </section>
+
+      {/* 2 y 3 — Reparto y entregas */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Reparto del dinero — {etiquetaMes}</h2>
+        <RepartoPanel filas={reparto.filas} entregas={reparto.entregas} base={reparto.base} unidades={reparto.unidades} />
+
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-muted/50 text-left text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2 font-medium">Cuadre de caja del mes</th>
+                <th className="px-4 py-2 text-right font-medium">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filasCuadre.map((f) => (
+                <tr key={f.concepto} className="border-b border-border/60 last:border-0">
+                  <td className={`px-4 py-2 text-foreground ${f.total ? "font-semibold" : ""}`}>{f.concepto}</td>
+                  <td className={`px-4 py-2 text-right ${f.total ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                    ${f.monto.toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+              <tr className={superavit ? "bg-primary/10" : "bg-destructive/10"}>
+                <td className={`px-4 py-2 font-semibold ${superavit ? "text-primary" : "text-destructive"}`}>
+                  {superavit ? "Superávit" : "Déficit"}
+                </td>
+                <td className={`px-4 py-2 text-right font-semibold ${superavit ? "text-primary" : "text-destructive"}`}>
+                  ${cuadre.resultado.toFixed(2)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {superavit
+            ? "Después de pagar compras, gastos, a cada quien lo que le toca y apartar la reinversión, todavía sobra dinero de lo cobrado en el mes (normalmente abonos de ventas de meses anteriores)."
+            : "Lo cobrado en el mes no alcanza para pagar compras, gastos, a cada quien lo que le toca y apartar la reinversión. Normalmente es porque parte de lo vendido aún no se cobra: revisa las cuentas por cobrar antes de entregar el saldo pendiente."}
+        </p>
+      </section>
+
+      {/* 6 — Cuentas por cobrar */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Cuentas por cobrar</h2>
+          <p className="text-xs text-muted-foreground">
+            Ventas a crédito y consignaciones que se cobran en partes. Cada abono que registres entra al dinero recibido del mes
+            en que lo cobraste.
+          </p>
+        </div>
+        <CobrosPanel ventas={cuentasPorCobrar} metodos={contexto.metodos} />
       </section>
 
       {/* Indicadores de venta */}
