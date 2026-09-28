@@ -234,8 +234,8 @@ export async function listarEntregas(mesRef?: Date): Promise<EntregaRow[]> {
  *
  * También cuadra la caja del mes con lo que de verdad pasó: lo cobrado menos
  * compras, gastos y las entregas registradas es lo que queda en caja. Si además
- * se entregara todo lo pendiente del reparto (reinversión incluida), lo que
- * resta es el superávit (o déficit si es negativo).
+ * se entregara lo pendiente a cada quien y se apartara la reinversión que falta,
+ * lo que resta es el superávit (o déficit si es negativo).
  */
 export async function obtenerRepartoMes(mesRef: Date = new Date()) {
   const [cobrado, pnl, costosFijos, entregas] = await Promise.all([
@@ -261,7 +261,8 @@ export async function obtenerRepartoMes(mesRef: Date = new Date()) {
   const totalDevengado = filas.reduce((s, f) => s + f.devengado, 0);
   const totalEntregado = filas.reduce((s, f) => s + f.entregado, 0);
   const quedaEnCaja = cobrado.total - pnl.costoMateriales - pnl.gastosTotal - totalEntregado;
-  const pendientePorEntregar = totalDevengado - totalEntregado;
+  const reinversionPendiente = filas.find((f) => f.concepto === "Reinversión")?.saldo ?? 0;
+  const pendientePorEntregar = totalDevengado - totalEntregado - reinversionPendiente;
 
   return {
     base: pnl.utilidadNeta,
@@ -277,7 +278,8 @@ export async function obtenerRepartoMes(mesRef: Date = new Date()) {
       entregado: totalEntregado,
       quedaEnCaja,
       pendientePorEntregar,
-      resultado: quedaEnCaja - pendientePorEntregar,
+      reinversionPendiente,
+      resultado: quedaEnCaja - pendientePorEntregar - reinversionPendiente,
     },
   };
 }
@@ -292,7 +294,8 @@ export function filasCuadreCaja(cuadre: CuadreCaja) {
     { concepto: "Gastos operativos", monto: -cuadre.gastos, total: false },
     { concepto: "Entregas registradas", monto: -cuadre.entregado, total: false },
     { concepto: "Queda en caja", monto: cuadre.quedaEnCaja, total: true },
-    { concepto: "Pendiente por entregar (reparto)", monto: -cuadre.pendientePorEntregar, total: false },
+    { concepto: "Pendiente por entregar a cada quien", monto: -cuadre.pendientePorEntregar, total: false },
+    { concepto: "Reinversión por apartar", monto: -cuadre.reinversionPendiente, total: false },
   ];
 }
 
