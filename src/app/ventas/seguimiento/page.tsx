@@ -8,7 +8,6 @@ import {
   obtenerKpisVentas,
   obtenerStockPorCategoria,
   obtenerTasaRecompra,
-  obtenerUnidadesPorCategoriaMes,
 } from "@/app/ventas/data";
 import {
   obtenerCobradoMes,
@@ -57,7 +56,6 @@ export default async function AdministracionPage({ searchParams }: { searchParam
     contexto,
     kpisVentas,
     comparativo,
-    unidadesPorCategoria,
     stockPorCategoria,
     clientesMes,
     tasaRecompra,
@@ -66,11 +64,10 @@ export default async function AdministracionPage({ searchParams }: { searchParam
     obtenerRepartoMes(mesRef),
     obtenerCuentasPorCobrar(),
     obtenerPnLMes(mesRef),
-    obtenerFlujoEfectivo(mesRef),
+    obtenerFlujoEfectivo(),
     obtenerContextoVentas(),
     obtenerKpisVentas(mesRef),
     obtenerComparativoVentas(mesRef),
-    obtenerUnidadesPorCategoriaMes(mesRef),
     obtenerStockPorCategoria(),
     obtenerClientesNuevosVsRecurrentesMes(mesRef),
     obtenerTasaRecompra(),
@@ -78,7 +75,6 @@ export default async function AdministracionPage({ searchParams }: { searchParam
 
   const totalPorCobrar = cuentasPorCobrar.reduce((s, v) => s + v.saldo, 0);
   const ticketPromedioPorCliente = clientesMes.totalClientes > 0 ? kpisVentas.ingresoMes / clientesMes.totalClientes : 0;
-  const maxUnidadesCategoria = Math.max(1, ...unidadesPorCategoria.map((c) => c.unidades));
   const maxStockCategoria = Math.max(1, ...stockPorCategoria.map((c) => c.stock));
 
   const filasPnL = [
@@ -105,7 +101,9 @@ export default async function AdministracionPage({ searchParams }: { searchParam
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Administración</h1>
-          <p className="text-sm text-muted-foreground">Dinero recibido, reparto y resultados del mes.</p>
+          <p className="text-sm text-muted-foreground">
+            Elige el mes con las flechas: todo lo de esta página se calcula para ese mes, salvo lo marcado como histórico.
+          </p>
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
           <Link
@@ -138,9 +136,14 @@ export default async function AdministracionPage({ searchParams }: { searchParam
         ))}
       </div>
 
-      {/* 1 — Dinero recibido */}
+      {/* 2 — Dinero recibido */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Dinero recibido</h2>
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Dinero recibido</h2>
+          <p className="text-xs text-muted-foreground">
+            El dinero que realmente entró este mes, comparado con lo que se vendió y con lo que todavía te deben.
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-xl border border-border bg-card p-4">
@@ -183,73 +186,28 @@ export default async function AdministracionPage({ searchParams }: { searchParam
         )}
       </section>
 
-      {/* 5 — P&L */}
+      {/* 3 y 4 — Reparto del dinero y entregas registradas */}
+      <RepartoPanel
+        filas={reparto.filas}
+        entregas={reparto.entregas}
+        base={reparto.base}
+        unidades={reparto.unidades}
+        etiquetaMes={etiquetaMes}
+      />
+
+      {/* 5 — Cuadre de caja */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">P&amp;L — {etiquetaMes}</h2>
-          <ExportarPnLButton mes={formatoMes(mesRef)} filas={filasPnL} />
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Cuadre de caja</h2>
+          <p className="text-xs text-muted-foreground">
+            Si con lo cobrado este mes alcanza para pagar todo: compras, gastos, a cada quien y la reinversión.
+          </p>
         </div>
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-muted/50 text-left text-muted-foreground">
               <tr>
                 <th className="px-4 py-2 font-medium">Concepto</th>
-                <th className="px-4 py-2 text-right font-medium">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filasPnL.map((f) => (
-                <tr key={f.concepto} className="border-b border-border/60 last:border-0">
-                  <td className={`px-4 py-2 ${f.concepto === "Utilidad neta" ? "font-semibold text-foreground" : "text-foreground"}`}>
-                    {f.concepto}
-                  </td>
-                  <td
-                    className={`px-4 py-2 text-right ${
-                      f.concepto === "Utilidad neta" ? "font-semibold text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    ${f.monto.toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          La mano de obra, el empaque y el pago a Gaby se descuentan por pieza vendida aunque todavía no los hayas pagado. No los
-          registres además como gasto en{" "}
-          <Link href="/produccion/gastos" className="text-primary underline-offset-2 hover:underline">
-            Gastos
-          </Link>{" "}
-          o se contarían dos veces.
-        </p>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-xs font-medium text-muted-foreground">Proyección a 30 días</h3>
-            <p className="text-2xl font-semibold text-foreground">${flujoEfectivo.proyeccion30.toFixed(2)}</p>
-            <p className="mt-1 text-[10px] text-muted-foreground/70">
-              saldo en caja + utilidad promedio de los últimos 3 meses (${flujoEfectivo.flujoNetoPromedio.toFixed(2)})
-            </p>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-xs font-medium text-muted-foreground">Proyección a 60 días</h3>
-            <p className="text-2xl font-semibold text-foreground">${flujoEfectivo.proyeccion60.toFixed(2)}</p>
-            <p className="mt-1 text-[10px] text-muted-foreground/70">saldo en caja + 2 × utilidad promedio</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 2 y 3 — Reparto y entregas */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Reparto del dinero — {etiquetaMes}</h2>
-        <RepartoPanel filas={reparto.filas} entregas={reparto.entregas} base={reparto.base} unidades={reparto.unidades} />
-
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead className="border-b border-border bg-muted/50 text-left text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 font-medium">Cuadre de caja del mes</th>
                 <th className="px-4 py-2 text-right font-medium">Monto</th>
               </tr>
             </thead>
@@ -292,11 +250,61 @@ export default async function AdministracionPage({ searchParams }: { searchParam
         <CobrosPanel ventas={cuentasPorCobrar} metodos={contexto.metodos} />
       </section>
 
-      {/* Indicadores de venta */}
+      {/* 7 — P&L */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Indicadores de venta</h2>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">P&amp;L — {etiquetaMes}</h2>
+            <p className="text-xs text-muted-foreground">
+              Estado de resultados: lo que se vendió menos lo que costó producirlo. Dice si el mes dejó ganancia o pérdida.
+            </p>
+          </div>
+          <ExportarPnLButton mes={formatoMes(mesRef)} filas={filasPnL} />
+        </div>
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-muted/50 text-left text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2 font-medium">Concepto</th>
+                <th className="px-4 py-2 text-right font-medium">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filasPnL.map((f) => (
+                <tr key={f.concepto} className="border-b border-border/60 last:border-0">
+                  <td className={`px-4 py-2 ${f.concepto === "Utilidad neta" ? "font-semibold text-foreground" : "text-foreground"}`}>
+                    {f.concepto}
+                  </td>
+                  <td
+                    className={`px-4 py-2 text-right ${
+                      f.concepto === "Utilidad neta" ? "font-semibold text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    ${f.monto.toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          La mano de obra, el empaque y el pago a Gaby se descuentan por pieza vendida aunque todavía no los hayas pagado. No los
+          registres además como gasto en{" "}
+          <Link href="/produccion/gastos" className="text-primary underline-offset-2 hover:underline">
+            Gastos
+          </Link>{" "}
+          o se contarían dos veces.
+        </p>
+      </section>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* 8 — Indicadores de venta */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Indicadores de venta</h2>
+          <p className="text-xs text-muted-foreground">Cuánto y cómo se vendió este mes: piezas, días, semanas y canales.</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-4">
             <h3 className="text-xs font-medium text-muted-foreground">Ticket promedio por cliente</h3>
             <p className="text-2xl font-semibold text-foreground">${ticketPromedioPorCliente.toFixed(2)}</p>
@@ -310,13 +318,6 @@ export default async function AdministracionPage({ searchParams }: { searchParam
             <h3 className="text-xs font-medium text-muted-foreground">Vs. mes anterior</h3>
             <p className="text-2xl font-semibold text-foreground">${comparativo.mesAnterior.ingreso.toFixed(2)}</p>
             <p className="mt-1 text-xs text-muted-foreground">{variacionTexto(comparativo.mesAnterior.variacionIngreso)}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-xs font-medium text-muted-foreground">Vs. mismo mes año anterior</h3>
-            <p className="text-2xl font-semibold text-foreground">${comparativo.mismoMesAnioAnterior.ingreso.toFixed(2)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {variacionTexto(comparativo.mismoMesAnioAnterior.variacionIngreso)}
-            </p>
           </div>
         </div>
 
@@ -350,54 +351,33 @@ export default async function AdministracionPage({ searchParams }: { searchParam
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
-            <h3 className="text-sm font-medium text-muted-foreground">Unidades vendidas por categoría</h3>
-            {unidadesPorCategoria.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">Sin ventas registradas este mes.</p>
-            ) : (
-              <div className="space-y-2">
-                {unidadesPorCategoria.map((c) => (
-                  <div key={c.nombre} className="space-y-1">
-                    <div className="flex items-baseline justify-between text-sm">
-                      <span className="font-medium text-foreground">{c.nombre}</span>
-                      <span className="text-muted-foreground">{c.unidades} piezas</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${pct(c.unidades, maxUnidadesCategoria)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
-            <h3 className="text-sm font-medium text-muted-foreground">Ventas por canal</h3>
-            {kpisVentas.porCanal.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">Sin ventas registradas este mes.</p>
-            ) : (
-              <div className="space-y-2">
-                {kpisVentas.porCanal.map((c) => (
-                  <div key={c.id_canal ?? "sin-canal"} className="flex items-baseline justify-between text-sm">
-                    <span className="font-medium text-foreground">{c.nombre}</span>
-                    <span className="text-muted-foreground">
-                      ${c.total.toFixed(2)} · {c.unidades} pieza{c.unidades === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="space-y-3 rounded-xl border border-border bg-card p-5">
+          <h3 className="text-sm font-medium text-muted-foreground">Ventas por canal</h3>
+          {kpisVentas.porCanal.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">Sin ventas registradas este mes.</p>
+          ) : (
+            <div className="space-y-2">
+              {kpisVentas.porCanal.map((c) => (
+                <div key={c.id_canal ?? "sin-canal"} className="flex items-baseline justify-between text-sm">
+                  <span className="font-medium text-foreground">{c.nombre}</span>
+                  <span className="text-muted-foreground">
+                    ${c.total.toFixed(2)} · {c.unidades} pieza{c.unidades === 1 ? "" : "s"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Inventario y clientes */}
+      {/* 9 — Inventario y clientes */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Inventario y clientes</h2>
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Inventario y clientes</h2>
+          <p className="text-xs text-muted-foreground">
+            Las piezas que tienes listas para vender y qué tanto regresan tus clientas a comprar.
+          </p>
+        </div>
 
         <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="mb-3 text-sm font-medium text-muted-foreground">Stock disponible por categoría</h3>

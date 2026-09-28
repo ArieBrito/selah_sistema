@@ -282,9 +282,9 @@ export async function obtenerRepartoMes(mesRef: Date = new Date()) {
 /**
  * Saldo real del negocio: todo lo cobrado menos las compras de materiales, los
  * gastos operativos y el dinero ya entregado a cada quien. Es el efectivo que
- * queda disponible, con una proyección usando la utilidad de los últimos meses.
+ * queda disponible.
  */
-export async function obtenerFlujoEfectivo(mesRef: Date = new Date()) {
+export async function obtenerFlujoEfectivo() {
   const [{ data: cobros }, { data: compras }, { data: gastos }, { data: entregas }] = await Promise.all([
     supabase.from("cobros").select("monto"),
     supabase.from("compras").select("total"),
@@ -298,18 +298,11 @@ export async function obtenerFlujoEfectivo(mesRef: Date = new Date()) {
   const entregadoHistorico = (entregas ?? []).reduce((s, e) => s + Number(e.monto), 0);
   const efectivoDisponible = cobradoHistorico - comprasHistoricas - gastosHistoricos - entregadoHistorico;
 
-  const ultimos3Meses = [0, 1, 2].map((i) => new Date(mesRef.getFullYear(), mesRef.getMonth() - i, 1));
-  const pnlUltimos3 = await Promise.all(ultimos3Meses.map((m) => obtenerPnLMes(m)));
-  const flujoNetoPromedio = pnlUltimos3.reduce((s, p) => s + p.utilidadNeta, 0) / pnlUltimos3.length;
-
   return {
     cobradoHistorico,
     comprasHistoricas,
     gastosHistoricos,
     entregadoHistorico,
     efectivoDisponible,
-    flujoNetoPromedio,
-    proyeccion30: efectivoDisponible + flujoNetoPromedio,
-    proyeccion60: efectivoDisponible + flujoNetoPromedio * 2,
   };
 }
