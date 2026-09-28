@@ -196,7 +196,8 @@ export default async function AdministracionPage({ searchParams }: { searchParam
           <div>
             <h2 className="text-sm font-semibold text-foreground">Cuadre de caja</h2>
             <p className="text-xs text-muted-foreground">
-              Lo que de verdad queda en caja después de lo que ya se pagó, y si alcanza para entregar lo que falta del reparto.
+              Lo que de verdad queda en caja después de lo que ya se pagó, y si alcanza para entregar lo que falta y apartar la
+              reinversión.
             </p>
           </div>
           <ExportarCuadreButton anio={mesRef.getFullYear()} />
@@ -231,8 +232,8 @@ export default async function AdministracionPage({ searchParams }: { searchParam
         </div>
         <p className="text-xs text-muted-foreground">
           {superavit
-            ? "Aun entregando todo lo pendiente del reparto (reinversión incluida), sobra dinero de lo cobrado en el mes (normalmente abonos de ventas de meses anteriores)."
-            : "Lo que queda en caja no alcanza para entregar todo lo pendiente del reparto (reinversión incluida). Normalmente es porque parte de lo vendido aún no se cobra: revisa las cuentas por cobrar antes de entregar el saldo pendiente."}
+            ? "Aun entregando lo pendiente a cada quien y apartando la reinversión, sobra dinero de lo cobrado en el mes (normalmente abonos de ventas de meses anteriores)."
+            : "Lo que queda en caja no alcanza para entregar lo pendiente a cada quien y apartar la reinversión. Normalmente es porque parte de lo vendido aún no se cobra: revisa las cuentas por cobrar antes de entregar el saldo pendiente."}
         </p>
       </section>
 
