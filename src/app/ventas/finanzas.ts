@@ -232,9 +232,10 @@ export async function listarEntregas(mesRef?: Date): Promise<EntregaRow[]> {
  * Reparto del mes contra lo que ya se entregó, para saber cuánto se le debe a
  * cada quien. La base es la utilidad neta del P&L del mes.
  *
- * También cuadra la caja del mes: lo cobrado menos compras, gastos y lo que le
- * toca a cada quien (la reinversión se queda en el negocio). Lo que resta es el
- * superávit (o déficit si es negativo) después de pagar todo.
+ * También cuadra la caja del mes con lo que de verdad pasó: lo cobrado menos
+ * compras, gastos y las entregas registradas es lo que queda en caja. Si además
+ * se entregara todo lo pendiente del reparto (reinversión incluida), lo que
+ * resta es el superávit (o déficit si es negativo).
  */
 export async function obtenerRepartoMes(mesRef: Date = new Date()) {
   const [cobrado, pnl, costosFijos, entregas] = await Promise.all([
@@ -257,24 +258,26 @@ export async function obtenerRepartoMes(mesRef: Date = new Date()) {
     return { concepto, devengado, entregado, saldo: devengado - entregado };
   });
 
-  const pagosPersonas = filas.filter((f) => f.concepto !== "Reinversión").reduce((s, f) => s + f.devengado, 0);
-  const quedaEnCaja = cobrado.total - pnl.costoMateriales - pnl.gastosTotal - pagosPersonas;
+  const totalDevengado = filas.reduce((s, f) => s + f.devengado, 0);
+  const totalEntregado = filas.reduce((s, f) => s + f.entregado, 0);
+  const quedaEnCaja = cobrado.total - pnl.costoMateriales - pnl.gastosTotal - totalEntregado;
+  const pendientePorEntregar = totalDevengado - totalEntregado;
 
   return {
     base: pnl.utilidadNeta,
     unidades: pnl.unidades,
     filas,
-    totalDevengado: filas.reduce((s, f) => s + f.devengado, 0),
-    totalEntregado: filas.reduce((s, f) => s + f.entregado, 0),
+    totalDevengado,
+    totalEntregado,
     entregas,
     cuadreCaja: {
       cobrado: cobrado.total,
       compras: pnl.costoMateriales,
       gastos: pnl.gastosTotal,
-      pagosPersonas,
+      entregado: totalEntregado,
       quedaEnCaja,
-      reinversion: montos.Reinversión,
-      resultado: quedaEnCaja - montos.Reinversión,
+      pendientePorEntregar,
+      resultado: quedaEnCaja - pendientePorEntregar,
     },
   };
 }
@@ -287,9 +290,9 @@ export function filasCuadreCaja(cuadre: CuadreCaja) {
     { concepto: "Cobrado en el mes", monto: cuadre.cobrado, total: false },
     { concepto: "Compras de materiales", monto: -cuadre.compras, total: false },
     { concepto: "Gastos operativos", monto: -cuadre.gastos, total: false },
-    { concepto: "Lo que le toca a cada quien (sin reinversión)", monto: -cuadre.pagosPersonas, total: false },
+    { concepto: "Entregas registradas", monto: -cuadre.entregado, total: false },
     { concepto: "Queda en caja", monto: cuadre.quedaEnCaja, total: true },
-    { concepto: "Reinversión apartada", monto: -cuadre.reinversion, total: false },
+    { concepto: "Pendiente por entregar (reparto)", monto: -cuadre.pendientePorEntregar, total: false },
   ];
 }
 
