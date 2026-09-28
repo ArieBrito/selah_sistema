@@ -10,6 +10,7 @@ import {
   obtenerTasaRecompra,
 } from "@/app/ventas/data";
 import {
+  filasCuadreCaja,
   obtenerCobradoMes,
   obtenerCuentasPorCobrar,
   obtenerFlujoEfectivo,
@@ -17,6 +18,7 @@ import {
   obtenerRepartoMes,
 } from "@/app/ventas/finanzas";
 import { ExportarPnLButton } from "./pnl-export-button";
+import { ExportarCuadreButton } from "./cuadre-export-button";
 import { RepartoPanel } from "./reparto-panel";
 import { CobrosPanel } from "./cobros-panel";
 
@@ -87,14 +89,7 @@ export default async function AdministracionPage({ searchParams }: { searchParam
 
   const cuadre = reparto.cuadreCaja;
   const superavit = cuadre.resultado >= -0.005;
-  const filasCuadre = [
-    { concepto: "Cobrado en el mes", monto: cuadre.cobrado, total: false },
-    { concepto: "Compras de materiales", monto: -cuadre.compras, total: false },
-    { concepto: "Gastos operativos", monto: -cuadre.gastos, total: false },
-    { concepto: "Lo que le toca a cada quien (sin reinversión)", monto: -cuadre.pagosPersonas, total: false },
-    { concepto: "Queda en caja", monto: cuadre.quedaEnCaja, total: true },
-    { concepto: "Reinversión apartada", monto: -cuadre.reinversion, total: false },
-  ];
+  const filasCuadre = filasCuadreCaja(cuadre);
 
   return (
     <div className="space-y-6">
@@ -197,11 +192,14 @@ export default async function AdministracionPage({ searchParams }: { searchParam
 
       {/* 5 — Cuadre de caja */}
       <section className="space-y-3">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">Cuadre de caja</h2>
-          <p className="text-xs text-muted-foreground">
-            Si con lo cobrado este mes alcanza para pagar todo: compras, gastos, a cada quien y la reinversión.
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Cuadre de caja</h2>
+            <p className="text-xs text-muted-foreground">
+              Si con lo cobrado este mes alcanza para pagar todo: compras, gastos, a cada quien y la reinversión.
+            </p>
+          </div>
+          <ExportarCuadreButton anio={mesRef.getFullYear()} />
         </div>
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
