@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 import { cobroFormSchema, entregaFormSchema, type CobroFormValues, type EntregaFormValues } from "@/lib/validations";
 import { requerirAdmin } from "@/lib/auth";
+import { NOMBRES_MES } from "@/lib/mes";
+import { filasCuadreCaja, obtenerRepartoMes } from "@/app/ventas/finanzas";
 
 function revalidar() {
   revalidatePath("/ventas/seguimiento");
@@ -67,4 +69,17 @@ export async function eliminarEntrega(id_entrega: number) {
 
   revalidar();
   return { ok: true as const };
+}
+
+/** Cuadre de caja de los 12 meses del año, como tabla lista para exportar: un renglón por concepto, una columna por mes. */
+export async function obtenerCuadreCajaAnio(anio: number) {
+  await requerirAdmin();
+
+  const repartos = await Promise.all(NOMBRES_MES.map((_, i) => obtenerRepartoMes(new Date(anio, i, 1))));
+  const porMes = repartos.map((r) => [
+    ...filasCuadreCaja(r.cuadreCaja),
+    { concepto: "Superávit / Déficit", monto: r.cuadreCaja.resultado },
+  ]);
+
+  return porMes[0].map((fila, i) => ({ concepto: fila.concepto, montos: porMes.map((filas) => filas[i].monto) }));
 }

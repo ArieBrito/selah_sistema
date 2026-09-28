@@ -279,6 +279,20 @@ export async function obtenerRepartoMes(mesRef: Date = new Date()) {
   };
 }
 
+export type CuadreCaja = Awaited<ReturnType<typeof obtenerRepartoMes>>["cuadreCaja"];
+
+/** Renglones del cuadre de caja, en el orden en que se muestran y se exportan. */
+export function filasCuadreCaja(cuadre: CuadreCaja) {
+  return [
+    { concepto: "Cobrado en el mes", monto: cuadre.cobrado, total: false },
+    { concepto: "Compras de materiales", monto: -cuadre.compras, total: false },
+    { concepto: "Gastos operativos", monto: -cuadre.gastos, total: false },
+    { concepto: "Lo que le toca a cada quien (sin reinversión)", monto: -cuadre.pagosPersonas, total: false },
+    { concepto: "Queda en caja", monto: cuadre.quedaEnCaja, total: true },
+    { concepto: "Reinversión apartada", monto: -cuadre.reinversion, total: false },
+  ];
+}
+
 /**
  * Saldo real del negocio: todo lo cobrado menos las compras de materiales, los
  * gastos operativos y el dinero ya entregado a cada quien. Es el efectivo que
