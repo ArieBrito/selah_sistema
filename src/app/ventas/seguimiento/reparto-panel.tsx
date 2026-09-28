@@ -44,11 +44,13 @@ export function RepartoPanel({
   entregas,
   base,
   unidades,
+  etiquetaMes,
 }: {
   filas: FilaReparto[];
   entregas: EntregaRow[];
   base: number;
   unidades: number;
+  etiquetaMes: string;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -114,121 +116,137 @@ export function RepartoPanel({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Concepto</TableHead>
-              <TableHead className="text-right">Le toca</TableHead>
-              <TableHead className="text-right">Ya entregado</TableHead>
-              <TableHead className="text-right">Saldo pendiente</TableHead>
-              <TableHead className="w-32" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filas.map((f) => (
-              <TableRow key={f.concepto} className="hover:bg-transparent">
-                <TableCell className="font-medium text-foreground">{f.concepto}</TableCell>
-                <TableCell className="text-right text-foreground">${f.devengado.toFixed(2)}</TableCell>
-                <TableCell className="text-right text-muted-foreground">${f.entregado.toFixed(2)}</TableCell>
-                <TableCell
-                  className={`text-right font-semibold ${
-                    f.saldo > 0.005 ? "text-destructive" : f.saldo < -0.005 ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
-                  ${f.saldo.toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="gap-1 text-muted-foreground"
-                    onClick={() => abrirNueva(f.concepto, Math.max(0, f.saldo))}
+    <>
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Reparto del dinero — {etiquetaMes}</h2>
+          <p className="text-xs text-muted-foreground">
+            Cuánto le toca a cada quien este mes, cuánto ya se le dio y cuánto se le debe todavía.
+          </p>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Concepto</TableHead>
+                <TableHead className="text-right">Le toca</TableHead>
+                <TableHead className="text-right">Ya entregado</TableHead>
+                <TableHead className="text-right">Saldo pendiente</TableHead>
+                <TableHead className="w-32" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filas.map((f) => (
+                <TableRow key={f.concepto} className="hover:bg-transparent">
+                  <TableCell className="font-medium text-foreground">{f.concepto}</TableCell>
+                  <TableCell className="text-right text-foreground">${f.devengado.toFixed(2)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">${f.entregado.toFixed(2)}</TableCell>
+                  <TableCell
+                    className={`text-right font-semibold ${
+                      f.saldo > 0.005 ? "text-destructive" : f.saldo < -0.005 ? "text-primary" : "text-muted-foreground"
+                    }`}
                   >
-                    <Plus className="size-3.5" /> Entrega
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            <TableRow className="border-t-2 border-border bg-muted/40 hover:bg-muted/40">
-              <TableCell className="font-semibold text-foreground">Total</TableCell>
-              <TableCell className="text-right font-semibold text-foreground">${totalDevengado.toFixed(2)}</TableCell>
-              <TableCell className="text-right font-semibold text-foreground">${totalEntregado.toFixed(2)}</TableCell>
-              <TableCell className="text-right font-semibold text-foreground">${totalSaldo.toFixed(2)}</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-
-      <p className="text-xs text-muted-foreground">
-        Mano de obra, empaque y el pago fijo a Gaby son los costos por pieza de las {unidades} pieza{unidades === 1 ? "" : "s"}{" "}
-        vendidas, los mismos del P&amp;L. Lo que se reparte es la utilidad neta (${base.toFixed(2)}): 15% es de Arie y el resto se
-        divide mitad reinversión y mitad Gaby.{base < 0 && " Este mes hay pérdida, así que no hay utilidad que repartir."}
-      </p>
-
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-foreground">Entregas registradas este mes</h3>
-        <Button size="sm" onClick={() => abrirNueva("Gaby", 0)} className="gap-1.5">
-          <Plus className="size-3.5" /> Registrar entrega
-        </Button>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Fecha</TableHead>
-              <TableHead>A quién / concepto</TableHead>
-              <TableHead>Nota</TableHead>
-              <TableHead className="text-right">Monto</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entregas.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                  Todavía no has registrado entregas este mes.
-                </TableCell>
-              </TableRow>
-            )}
-            {entregas.map((e) => (
-              <TableRow key={e.id_entrega} className="group cursor-pointer" onClick={() => abrirEdicion(e)}>
-                <TableCell className="text-muted-foreground">{e.fecha}</TableCell>
-                <TableCell className="font-medium text-foreground">{e.concepto}</TableCell>
-                <TableCell className="text-muted-foreground">{e.nota || "—"}</TableCell>
-                <TableCell className="text-right font-semibold text-foreground">${e.monto.toFixed(2)}</TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 max-sm:opacity-100">
+                    ${f.saldo.toFixed(2)}
+                  </TableCell>
+                  <TableCell>
                     <Button
-                      size="icon"
+                      size="sm"
                       variant="ghost"
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        abrirEdicion(e);
-                      }}
+                      className="gap-1 text-muted-foreground"
+                      onClick={() => abrirNueva(f.concepto, Math.max(0, f.saldo))}
                     >
-                      <Pencil className="size-4" />
+                      <Plus className="size-3.5" /> Entrega
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        setAEliminar(e);
-                      }}
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
-                  </div>
-                </TableCell>
+                  </TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="border-t-2 border-border bg-muted/40 hover:bg-muted/40">
+                <TableCell className="font-semibold text-foreground">Total</TableCell>
+                <TableCell className="text-right font-semibold text-foreground">${totalDevengado.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-semibold text-foreground">${totalEntregado.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-semibold text-foreground">${totalSaldo.toFixed(2)}</TableCell>
+                <TableCell />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableBody>
+          </Table>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Mano de obra, empaque y el pago fijo a Gaby son los costos por pieza de las {unidades} pieza{unidades === 1 ? "" : "s"}{" "}
+          vendidas, los mismos del P&amp;L. Lo que se reparte es la utilidad neta (${base.toFixed(2)}): 15% es de Arie y el resto se
+          divide mitad reinversión y mitad Gaby.{base < 0 && " Este mes hay pérdida, así que no hay utilidad que repartir."}
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Entregas registradas</h2>
+            <p className="text-xs text-muted-foreground">
+              El dinero que ya salió de la caja para pagarle a cada quien. Cada entrega descuenta del saldo pendiente.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => abrirNueva("Gaby", 0)} className="gap-1.5">
+            <Plus className="size-3.5" /> Registrar entrega
+          </Button>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Fecha</TableHead>
+                <TableHead>A quién / concepto</TableHead>
+                <TableHead>Nota</TableHead>
+                <TableHead className="text-right">Monto</TableHead>
+                <TableHead className="w-20" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {entregas.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                    Todavía no has registrado entregas este mes.
+                  </TableCell>
+                </TableRow>
+              )}
+              {entregas.map((e) => (
+                <TableRow key={e.id_entrega} className="group cursor-pointer" onClick={() => abrirEdicion(e)}>
+                  <TableCell className="text-muted-foreground">{e.fecha}</TableCell>
+                  <TableCell className="font-medium text-foreground">{e.concepto}</TableCell>
+                  <TableCell className="text-muted-foreground">{e.nota || "—"}</TableCell>
+                  <TableCell className="text-right font-semibold text-foreground">${e.monto.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 max-sm:opacity-100">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          abrirEdicion(e);
+                        }}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          setAEliminar(e);
+                        }}
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </section>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent className="sm:max-w-md">
@@ -318,6 +336,6 @@ export function RepartoPanel({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

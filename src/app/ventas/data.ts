@@ -259,32 +259,6 @@ export async function obtenerIngresoAcumulado() {
   return (data ?? []).reduce((s, v) => s + Number(v.total), 0);
 }
 
-type DetalleCategoriaRow = { cantidad: number; producto: { categoria: { nombre: string } | null } | null };
-type VentaCategoriaMesRow = { detalle: DetalleCategoriaRow[] };
-
-export async function obtenerUnidadesPorCategoriaMes(mesRef: Date = new Date()) {
-  const inicioMes = startOfMonth(mesRef);
-  const finMes = endOfMonth(mesRef);
-
-  const { data } = await supabase
-    .from("ventas")
-    .select("detalle:venta_detalle(cantidad, producto:productos(categoria:categorias(nombre)))")
-    .gte("fecha_hora", inicioMes.toISOString())
-    .lte("fecha_hora", finMes.toISOString())
-    .returns<VentaCategoriaMesRow[]>();
-
-  const mapa = new Map<string, number>();
-  for (const v of data ?? []) {
-    for (const d of v.detalle) {
-      const nombre = d.producto?.categoria?.nombre ?? "Sin categoría";
-      mapa.set(nombre, (mapa.get(nombre) ?? 0) + Number(d.cantidad));
-    }
-  }
-  return Array.from(mapa.entries())
-    .map(([nombre, unidades]) => ({ nombre, unidades }))
-    .sort((a, b) => b.unidades - a.unidades);
-}
-
 export async function obtenerStockPorCategoria() {
   const { data } = await supabase
     .from("productos")
