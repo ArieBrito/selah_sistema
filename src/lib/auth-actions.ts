@@ -25,3 +25,10 @@ export async function logout() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+/** Refresca el token de sesión. Se llama periódicamente mientras la pestaña
+ * sigue abierta, para que una sesión activa no expire a medio formulario. */
+export async function renovarSesion() {
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.getUser();
+}

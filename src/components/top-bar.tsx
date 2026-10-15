@@ -1,17 +1,29 @@
 "use client";
 
+import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
-import { logout } from "@/lib/auth-actions";
+import { logout, renovarSesion } from "@/lib/auth-actions";
+
+const INTERVALO_RENOVACION_MS = 10 * 60 * 1000;
 
 export function TopBar({ esAdmin }: { esAdmin: boolean }) {
   const pathname = usePathname();
+  const enLogin = pathname?.startsWith("/login");
 
-  if (pathname?.startsWith("/login")) return null;
+  useEffect(() => {
+    if (enLogin) return;
+    const id = setInterval(() => {
+      renovarSesion().catch(() => {});
+    }, INTERVALO_RENOVACION_MS);
+    return () => clearInterval(id);
+  }, [enLogin]);
+
+  if (enLogin) return null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
