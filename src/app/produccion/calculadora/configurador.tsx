@@ -149,41 +149,46 @@ export function Configurador({
     }
 
     setGuardando(true);
-    const resultado = await guardarDiseno({
-      id: disenoExistente?.id,
-      nombre: nombre.trim(),
-      descripcion: descripcion.trim() || undefined,
-      id_categoria: idCategoria,
-      id_tipo_hilo: idTipoHilo,
-      lineas: lineas.map((l) => ({ id_material: l.id_material, cantidad: l.cantidad })),
-      precioManual: resumen.nivel && !usarPrecioManual ? undefined : Number(precioManual) || undefined,
-      ...(disenoExistente
-        ? {
-            id_tamano: idTamanoEdicion,
-            stockPiezas: Number(stockEdicion) || 0,
-            tallasAdicionales: Object.entries(otrasTallasStock)
-              .filter(([id_tamano]) => Number(id_tamano) !== idTamanoEdicion)
-              .map(([id_tamano, stock]) => ({
+    try {
+      const resultado = await guardarDiseno({
+        id: disenoExistente?.id,
+        nombre: nombre.trim(),
+        descripcion: descripcion.trim() || undefined,
+        id_categoria: idCategoria,
+        id_tipo_hilo: idTipoHilo,
+        lineas: lineas.map((l) => ({ id_material: l.id_material, cantidad: l.cantidad })),
+        precioManual: resumen.nivel && !usarPrecioManual ? undefined : Number(precioManual) || undefined,
+        ...(disenoExistente
+          ? {
+              id_tamano: idTamanoEdicion,
+              stockPiezas: Number(stockEdicion) || 0,
+              tallasAdicionales: Object.entries(otrasTallasStock)
+                .filter(([id_tamano]) => Number(id_tamano) !== idTamanoEdicion)
+                .map(([id_tamano, stock]) => ({
+                  id_tamano: Number(id_tamano),
+                  stockPiezas: Number(stock) || 0,
+                  id_producto: idProductoPorTalla[Number(id_tamano)],
+                })),
+            }
+          : {
+              tallas: Object.entries(tallasSeleccionadas).map(([id_tamano, stock]) => ({
                 id_tamano: Number(id_tamano),
                 stockPiezas: Number(stock) || 0,
-                id_producto: idProductoPorTalla[Number(id_tamano)],
               })),
-          }
-        : {
-            tallas: Object.entries(tallasSeleccionadas).map(([id_tamano, stock]) => ({
-              id_tamano: Number(id_tamano),
-              stockPiezas: Number(stock) || 0,
-            })),
-          }),
-    });
-    setGuardando(false);
+            }),
+      });
 
-    if (!resultado.ok) {
-      toast.error(resultado.error);
-      return;
+      if (!resultado.ok) {
+        toast.error(resultado.error);
+        return;
+      }
+      toast.success(resultado.ids.length > 1 ? `Diseño guardado (${resultado.ids.length} tallas)` : "Diseño guardado");
+      router.push("/produccion/productos");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el diseño.");
+    } finally {
+      setGuardando(false);
     }
-    toast.success(resultado.ids.length > 1 ? `Diseño guardado (${resultado.ids.length} tallas)` : "Diseño guardado");
-    router.push("/produccion/productos");
   }
 
   return (
